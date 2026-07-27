@@ -44,8 +44,11 @@ Acceptance (brief's, made measurable):
   timeline on the Mac-less workflow: `about:inspect` is unavailable, so use alphaTab's own
   render stats + on-device FPS overlay).
 - Speed 25–125%, loop, per-track solo/mute/volume, count-in, transposition, capo,
-  left-handed, track switcher, tap-to-seek, file import (.gp3/4/5/x/.gp, MusicXML), and a
+  track switcher, tap-to-seek, file import (.gp3/4/5/x/.gp, MusicXML), and a
   first-pass note-correction editor all function offline after install.
+  **Left-handed rendering is dropped from M0**: alphaTab 1.8.4 provides no such option
+  (evidence and rejected workarounds in docs/03-alphatab-notes.md). Everything else in the
+  brief's M0 control list is implemented.
 - iOS audio unlock: first tap starts audio reliably; phone call interruption and headphone
   unplug pause cleanly and resume without reload.
 

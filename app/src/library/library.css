@@ -1,0 +1,186 @@
+/* Library screen styles. Mobile-first, fits a 390px viewport. Uses only the
+   custom properties defined in src/index.css. */
+
+.library-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 100%;
+  padding: 16px 16px calc(16px + var(--safe-bottom));
+  box-sizing: border-box;
+}
+
+.library-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.library-search {
+  appearance: none;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 15px;
+  box-sizing: border-box;
+}
+
+.library-search::placeholder {
+  color: var(--color-text-muted);
+}
+
+.library-controls__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.library-sort {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.library-favourites-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.library-favourites-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-accent);
+}
+
+.library-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 40vh;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.library-empty-state p {
+  margin: 0;
+  max-width: 32ch;
+}
+
+.library-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--color-border);
+}
+
+.library-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.library-row__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 4px;
+  cursor: pointer;
+}
+
+.library-row__main:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.library-row__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.library-row__title {
+  color: var(--color-text);
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-row__artist {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-row__badge {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.library-row__actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.library-row__favourite,
+.library-row__remove {
+  appearance: none;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.library-row__favourite:focus-visible,
+.library-row__remove:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.library-row__favourite.is-active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-muted);
+  color: var(--color-accent);
+}

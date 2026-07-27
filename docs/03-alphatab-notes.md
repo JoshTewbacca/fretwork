@@ -111,3 +111,30 @@ synth guitar sound grates.
 
 Still open (check during M0 implementation, low risk): iOS audio-unlock specifics with
 alphaSynth (`platform/ios` docs page) — handled defensively in the player core regardless.
+
+## Second verification pass (M0 controls, 2026-07-27)
+
+- `StaveProfile` enum: `Default=0, ScoreTab=1, Score=2, Tab=3, TabMixed=4`. Set via
+  `settings.display.staveProfile`, then `api.updateSettings()` and `api.render()`.
+- `api.applyPlaybackRangeFromHighlight()` adopts a range the user selected by dragging over
+  the score — this is the cheap path to "loop this passage" without building a custom
+  selection system. `api.clearSelection()` exists for custom handle-based selection later.
+- Capo and transposition live on `Staff`: `capo`, `transpositionPitch` (render + playback)
+  and `displayTranspositionPitch` (render only). Settings-level equivalents exist as
+  `settings.display.transpositionPitches[]` / `displayTranspositionPitches[]`.
+- `api.playedBeatChanged` yields a `Beat`; the master bar index is `beat.voice.bar.index`,
+  which is how the practice engine will locate the current bar.
+
+### Not available: left-handed rendering
+
+**alphaTab 1.8.4 has no left-handed rendering support.** A search for "handed" across the
+entire shipped type definitions returns zero matches, and there is no string-order or
+mirroring option on `DisplaySettings`. The brief lists left-handed rendering in the M0
+feature set; it cannot be built at this version.
+
+Rejected workaround: a CSS `transform: scaleX(-1)` on the score container mirrors the
+glyphs, fret numbers and text along with the staff, producing unreadable output.
+
+Options if this matters to the owner: raise it upstream with alphaTab, or reverse string
+order in a fork of the tab renderer (a large change, disproportionate for a single-user app
+whose owner has not said they play left-handed). Deferred pending a decision.

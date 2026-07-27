@@ -1,0 +1,505 @@
+/* Player controls: mobile-first, self-contained. Uses only the app's
+   existing custom properties (see src/index.css) so it can be dropped
+   anywhere without depending on other stylesheets. Fits a 390px viewport
+   with no horizontal overflow; interactive targets are at least 44x44px. */
+
+.player-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 10px 12px;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  font-size: 14px;
+  /* The score is the point of this screen: never let the control stack push
+     it off-screen. Beyond this the panel scrolls internally instead. */
+  max-height: 38dvh;
+  overflow-y: auto;
+  flex: none;
+}
+
+.player-controls * {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.player-controls--empty {
+  align-items: center;
+  text-align: center;
+  padding: 24px 16px;
+}
+
+.player-controls__hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.player-controls__section {
+  border-top: 1px solid var(--color-border);
+  padding-top: 4px;
+}
+
+.player-controls__section summary {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 6px 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+  list-style: none;
+}
+
+.player-controls__section summary::-webkit-details-marker {
+  display: none;
+}
+
+.player-controls__section summary::after {
+  content: '+';
+  margin-left: auto;
+  font-size: 18px;
+  color: var(--color-text-muted);
+}
+
+.player-controls__section[open] summary::after {
+  content: '\2212';
+}
+
+.player-controls__section > :not(summary) {
+  padding: 4px 4px 12px;
+}
+
+/* Generic small button, reused by loop actions and the track mixer. */
+.btn {
+  appearance: none;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn.is-active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-muted);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.btn--small {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+/* --- Transport bar --- */
+
+.transport-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.transport-bar__primary {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.transport-bar__play {
+  appearance: none;
+  flex: 1 1 auto;
+  border: none;
+  border-radius: 12px;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  min-height: 48px;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.transport-bar__play:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
+}
+
+.transport-bar__stop {
+  appearance: none;
+  flex: none;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  min-width: 44px;
+  min-height: 56px;
+  padding: 0 18px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.transport-bar__stop:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.transport-bar__readout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.transport-bar__time {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Speed control --- */
+
+.speed-control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.speed-control__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.speed-control__value {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.speed-control__range {
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  accent-color: var(--color-accent);
+}
+
+.speed-control__presets {
+  display: flex;
+  gap: 8px;
+}
+
+.speed-control__preset {
+  appearance: none;
+  flex: 1 1 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  min-height: 44px;
+  padding: 6px 4px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.speed-control__preset.is-active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-muted);
+}
+
+.speed-control__preset:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* --- Loop control --- */
+
+.loop-control {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.loop-control__row {
+  display: flex;
+  flex-direction: column;
+}
+
+.loop-control__readout {
+  padding: 0 4px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.loop-control__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.loop-control__hint {
+  margin: 4px 0 0;
+  padding: 0 4px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+/* --- Switch (shared by LoopControl and ToggleRow) --- */
+
+.switch {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 4px;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.switch__track {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--color-border);
+  transition: background-color 0.15s ease;
+}
+
+.switch__track.is-on {
+  background: var(--color-accent);
+}
+
+.switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-text);
+  transition: transform 0.15s ease;
+}
+
+.switch__track.is-on .switch__thumb {
+  transform: translateX(20px);
+  background: var(--color-bg);
+}
+
+/* --- Toggle row --- */
+
+.toggle-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.toggle-row__item {
+  display: flex;
+  flex-direction: column;
+}
+
+.toggle-row__hint {
+  margin: 0 0 4px;
+  padding: 0 4px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+/* --- Track mixer --- */
+
+.track-mixer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.track-mixer__row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.track-mixer__part {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.track-mixer__part input[type='radio'] {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-accent);
+}
+
+.track-mixer__name {
+  overflow: hidden;
+  flex: 1 1 auto;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+}
+
+.track-mixer__tag {
+  flex: none;
+  border: 1px solid var(--color-accent);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--color-accent);
+  font-size: 11px;
+}
+
+.track-mixer__buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.track-mixer__volume {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.track-mixer__volume input[type='range'] {
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  accent-color: var(--color-accent);
+}
+
+.track-mixer__steppers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* --- Stepper (shared by TrackMixer and DisplayControls) --- */
+
+.stepper {
+  display: flex;
+  flex: 1 1 45%;
+  min-width: 128px;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stepper__label {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.stepper__controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stepper__button {
+  appearance: none;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.stepper__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.stepper__button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.stepper__value {
+  min-width: 36px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+}
+
+/* --- Display controls --- */
+
+.display-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.display-controls__segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.segmented__option {
+  appearance: none;
+  flex: 1 1 45%;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  min-height: 44px;
+  padding: 8px 6px;
+  font: inherit;
+  font-size: 12px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.segmented__option.is-active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-muted);
+}
+
+.segmented__option:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}

@@ -1,7 +1,10 @@
 .app-shell {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
+  /* Fixed to the viewport, not min-height: the shell must clamp so inner
+     panes (notably the score) scroll internally and the tab bar and transport
+     stay put instead of scrolling away. */
+  height: 100dvh;
   overflow: hidden;
 }
 
