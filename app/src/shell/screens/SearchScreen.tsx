@@ -41,6 +41,15 @@ export function SearchScreen() {
           onInput={(e) => {
             searchStore.query.value = (e.currentTarget as HTMLInputElement).value
           }}
+          // Implicit form submission is not reliable for type="search" across
+          // browsers, and the iOS keyboard's Go key is the natural way to run
+          // a search on a phone. Handle Enter explicitly so it always works.
+          onKeyDown={(e) => {
+            if ((e as KeyboardEvent).key === 'Enter') {
+              e.preventDefault()
+              void searchStore.runSearch()
+            }
+          }}
         />
         <button type="submit" class="button button--primary search-submit">
           Search
