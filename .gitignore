@@ -48,6 +48,9 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 
+# Vercel local link state (project/org ids)
+.vercel/
+
 # Scratch
 scratch/
 *.log

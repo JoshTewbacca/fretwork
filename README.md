@@ -34,6 +34,21 @@ Windows desktop (Python)                          iPhone (installed PWA)
 - `app/` — the PWA
 - `ingest/` — the desktop ingest service and LAN API
 
+## Running and deploying
+
+The PWA is a static build. From `app/`:
+
+- `npm run dev` — local dev server
+- `npm test` — unit tests
+- `npm run build` — production build into `app/dist`
+
+Deployment targets Vercel's free tier with `app/` as the project root
+(`app/vercel.json` holds the build and cache-header configuration). The
+notation font and soundfont are copied into `public/` by the alphaTab Vite
+plugin at build time, so they are generated rather than committed.
+
+Live: https://fretwork-kappa.vercel.app
+
 ## Status
 
 Planning complete and approved; Milestone 0 (core player) in progress. See
