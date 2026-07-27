@@ -93,13 +93,21 @@ Decision: bundle `sonivox.sf3`, cache it in the service worker precache, done. A
 higher-quality guitar-focused SF2 becomes an optional, lazy-loaded upgrade later, only if the
 synth guitar sound grates.
 
-## VERIFY at implementation time (small, listed so subagents don't guess)
+## Formerly-VERIFY items — resolved against the installed 1.8.4 `.d.ts` (2026-07-27)
 
-- Exact `AutomationType` enum member name for sync points (page referenced but not fetched).
-- Whether `PlayerMode.EnabledBackingTrack` requires the audio to be embedded in the file, or
-  can be fed a blob (if the latter, M3 could use it instead of `EnabledExternalMedia`;
-  external media is the safe default since we need two parallel audio elements anyway).
-- GP7 export class name for persisting local tab corrections (`Gp7Exporter` believed to exist
-  since 1.4 — confirm in `.d.ts`; fallback plan in ADR/data model if absent).
-- `settings.core.enableLazyLoading` / partial-render settings names for long scores.
-- iOS-specific guidance page (`platform/ios` docs) for audio-unlock behaviour with alphaSynth.
+- `AutomationType.SyncPoint = 4`. (Quirk: `AutomationType.Bank` is also `4` in the enum —
+  always construct sync points explicitly, never infer type from the numeric value.)
+- `PlayerMode` members confirmed: `Disabled=0, EnabledAutomatic=1, EnabledSynthesizer=2,
+  EnabledBackingTrack=3, EnabledExternalMedia=4`. A `BackingTrack` class exists on the data
+  model holding "the data of the raw audio file", so a blob *can* be attached
+  programmatically for `EnabledBackingTrack`. We still use `EnabledExternalMedia` for M3
+  because full-mix mode needs two parallel audio elements (backing + guitar) under our
+  control; `EnabledBackingTrack` remains a fallback option for single-file playback.
+- `Gp7Exporter extends ScoreExporter { writeScore(score) }` exists — the corrected-tab
+  persistence path in the data model is viable as designed.
+- `CoreSettings.enableLazyLoading: boolean` exists; `renderFinished` semantics under lazy
+  loading documented on the event (partial images render on demand via
+  `IScoreRenderer.partialLayoutFinished` / `partialRenderFinished`).
+
+Still open (check during M0 implementation, low risk): iOS audio-unlock specifics with
+alphaSynth (`platform/ios` docs page) — handled defensively in the player core regardless.
