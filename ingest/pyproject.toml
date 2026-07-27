@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fretwork-ingest"
+version = "0.1.0"
+description = "Fretwork desktop ingest service: media scan, fuzzy tab matching, blob store, LAN API"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "mutagen",
+    "rapidfuzz",
+]
+
+[project.optional-dependencies]
+test = ["pytest", "httpx"]
+
+[project.scripts]
+fretwork-ingest = "fretwork_ingest.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

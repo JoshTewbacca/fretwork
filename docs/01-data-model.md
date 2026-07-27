@@ -143,7 +143,10 @@ CREATE TABLE source_audio (
   scanned_at INTEGER NOT NULL
 );
 
--- audio<->tab matches with confidence (ADR: never silent best-guess)
+-- audio<->tab matches with confidence (ADR: never silent best-guess).
+-- Note: a recording-variant disagreement (tab says studio, audio says live or
+-- acoustic) is capped below the auto threshold, because a different take has
+-- different timing and would never line up in play-along mode.
 CREATE TABLE matches (
   song_id TEXT NOT NULL, fingerprint TEXT NOT NULL,
   confidence REAL NOT NULL,            -- 0..1 from normalized artist/title distance

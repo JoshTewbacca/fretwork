@@ -1,0 +1,14 @@
+# Nested gitignore, scoped to ingest/. Defense-in-depth alongside the repo
+# root .gitignore: blob store files are named by content hash with no
+# extension, so the root's extension-based audio rules (*.mp3, *.flac, ...)
+# do not catch them. This repo is public -- no audio, tabs, or the ingest
+# database may ever be committed (see docs/00-milestone-plan.md).
+
+blobs/
+*.db
+*.db-*
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+config.local.json
