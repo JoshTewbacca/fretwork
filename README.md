@@ -47,6 +47,9 @@ Deployment targets Vercel's free tier with `app/` as the project root
 notation font and soundfont are copied into `public/` by the alphaTab Vite
 plugin at build time, so they are generated rather than committed.
 
+Pushes to `main` deploy automatically through the GitHub integration. A
+manual deploy is still available with `vercel deploy --prod` from `app/`.
+
 Live: https://fretwork-kappa.vercel.app
 
 ## Status
