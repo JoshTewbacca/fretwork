@@ -4,6 +4,10 @@ dist/
 .vite/
 *.tsbuildinfo
 
+# alphaTab assets copied into public/ by @coderline/alphatab-vite at build time
+app/public/font/
+app/public/soundfont/
+
 # Python
 .venv/
 __pycache__/
