@@ -1,0 +1,52 @@
+# Dependencies / build
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Content that must never be public: tabs, audio, ingest artifacts
+*.gp
+*.gp3
+*.gp4
+*.gp5
+*.gpx
+*.mid
+*.musicxml
+*.mxl
+*.opus
+*.mp3
+*.m4a
+*.m4p
+*.flac
+*.wav
+*.ogg
+*.sf2
+*.sf3
+ingest/*.db
+ingest/*.db-*
+ingest/output/
+ingest/reports/
+media/
+
+# Local config with machine-specific paths
+ingest/config.local.*
+.env
+.env.*
+
+# OS / editor noise
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Scratch
+scratch/
+*.log
+
+# Internal build brief - not part of the public repo
+FABLE_PROMPT.md
