@@ -95,7 +95,7 @@ interface PassageReviewState {
   rebuiltFromEventId: string; // last event folded into this state (for incremental rebuild)
 }
 
-// store: events (key: id, index on [songId, ts] and ts) — append-only
+// store: events (key: id, indexes: by-ts, by-passageId) — append-only
 type PracticeEvent =
   | { id: string; ts: number; type: 'session_start' | 'session_end' }
   | { id: string; ts: number; type: 'playthrough'; songId: string; trackIndex: number;

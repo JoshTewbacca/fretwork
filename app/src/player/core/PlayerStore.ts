@@ -78,6 +78,9 @@ export function createPlayerStore(
   options: PlayerStoreOptions,
 ): PlayerStore {
   const settings = new alphaTab.Settings()
+  // The alphatab-vite plugin copies the Bravura files to public/font/; the
+  // automatic detection resolves to the pre-bundled dep URL in dev, which 404s.
+  settings.core.fontDirectory = '/font/'
   settings.core.enableLazyLoading = true
   settings.player.playerMode = alphaTab.PlayerMode.EnabledSynthesizer
   settings.player.enableCursor = true

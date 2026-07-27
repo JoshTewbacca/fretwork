@@ -1,5 +1,8 @@
 import { render } from 'preact'
 import './index.css'
-import { App } from './app.tsx'
+import { AppShell } from './shell/AppShell'
+import { initPwa } from './pwa/register'
 
-render(<App />, document.getElementById('app')!)
+void initPwa()
+
+render(<AppShell />, document.getElementById('app')!)
