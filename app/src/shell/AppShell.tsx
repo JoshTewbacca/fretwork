@@ -1,7 +1,8 @@
 import type { JSX } from 'preact'
 import { currentRoute, navigate, type Route } from './router'
-import { PlayerIcon, LibraryIcon, SettingsIcon } from './icons'
+import { PlayerIcon, SearchIcon, LibraryIcon, SettingsIcon } from './icons'
 import { PlayerScreen } from './screens/PlayerScreen'
+import { SearchScreen } from './screens/SearchScreen'
 import { LibraryScreen } from './screens/LibraryScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import './AppShell.css'
@@ -14,6 +15,7 @@ interface TabDef {
 
 const TABS: TabDef[] = [
   { route: 'player', label: 'Player', Icon: PlayerIcon },
+  { route: 'search', label: 'Search', Icon: SearchIcon },
   { route: 'library', label: 'Library', Icon: LibraryIcon },
   { route: 'settings', label: 'Settings', Icon: SettingsIcon },
 ]
@@ -29,6 +31,7 @@ export function AppShell() {
         <div class="screen-keeper" hidden={route !== 'player'}>
           <PlayerScreen />
         </div>
+        {route === 'search' && <SearchScreen />}
         {route === 'library' && <LibraryScreen />}
         {route === 'settings' && <SettingsScreen />}
       </main>

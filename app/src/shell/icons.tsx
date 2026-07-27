@@ -39,3 +39,12 @@ export function SettingsIcon() {
     </svg>
   )
 }
+
+export function SearchIcon() {
+  return (
+    <svg {...ICON_PROPS}>
+      <circle cx="10.6" cy="10.6" r="6.4" />
+      <path d="M15.4 15.4 20 20" />
+    </svg>
+  )
+}
