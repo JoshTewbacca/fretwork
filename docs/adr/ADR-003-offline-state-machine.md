@@ -15,9 +15,23 @@ Status: proposed.
 ## Connectivity states
 
 `desktopLink: 'reachable' | 'unreachable' | 'checking'` — probed via `GET /health`
-(2 s timeout) on app launch, on `visibilitychange` to visible, and before any queued
-download. The base URL is a setting with two entries (LAN URL, Tailscale URL); probe LAN
-first, then Tailscale. No cloud fallback exists, by design.
+(3 s timeout) on app launch, on `visibilitychange` to visible, and before any queued
+download. The base URL is a setting with two entries (LAN URL, Tailscale URL).
+No cloud fallback exists, by design.
+
+**Revised 2026-07-27 — Tailscale is probed first, and a plain LAN address usually cannot
+work at all.** The original ordering above (LAN first) was written before the hosting model
+was settled. The PWA is served over HTTPS from Vercel, and browsers block mixed content, so
+an HTTPS page cannot call `http://192.168.x.x:8765`. A LAN entry is therefore only usable if
+the desktop serves HTTPS with a certificate the phone trusts, which a self-signed
+certificate is not. Tailscale Serve issues a real certificate for the machine's `*.ts.net`
+name, so it is the supported path and is probed first; the LAN field remains for the case
+where the owner terminates TLS locally, and the settings screen warns whenever an `http://`
+URL is entered.
+
+Consequence worth stating plainly: **Tailscale setup is a prerequisite for every desktop
+feature** (audio bundles, ingest review), not the convenience it was described as in the
+milestone plan. Tabs, search, playback and practice all continue to work without it.
 
 ## Per-asset states
 

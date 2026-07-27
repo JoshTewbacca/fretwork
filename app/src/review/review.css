@@ -1,0 +1,84 @@
+.review-queue__notice {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 4px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.review-queue__error {
+  margin: 0 0 8px;
+  color: #e06c60;
+  font-size: 13px;
+}
+
+.review-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.review-queue__song {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--color-surface);
+}
+
+.review-queue__song-id {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.review-queue__candidate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.review-queue__candidate:first-of-type {
+  border-top: none;
+}
+
+.review-queue__candidate-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.review-queue__candidate-title {
+  color: var(--color-text);
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-queue__candidate-artist {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.review-queue__candidate-confidence {
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.review-queue__candidate-actions {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.review-queue__candidate-actions .button {
+  min-width: 0;
+  padding: 8px 14px;
+  font-size: 13px;
+}

@@ -22,12 +22,14 @@ from a local songs table.
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import time
 from pathlib import Path
-from typing import Any, Iterator, Literal
+from typing import Any, Iterator, Literal, Sequence
 
 from fastapi import Body, Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -39,13 +41,37 @@ from . import __version__
 
 LINKED_MATCH_STATUSES = ("auto", "confirmed")
 
+# The PWA is served over HTTPS from Vercel and talks to this service directly
+# from the browser (no server-side proxy), so the response needs CORS headers
+# or every request is blocked before this code ever sees it. This service has
+# no cookie/session auth (see the module docstring), so credentials stay off.
+# Keep this list to the origins the PWA is actually served from; it is
+# deliberately not a wildcard.
+DEFAULT_ALLOWED_ORIGINS = (
+    "https://fretwork-kappa.vercel.app",
+    "http://localhost:5173",
+)
+
+# Machine-specific origins (e.g. a different Vercel preview URL) can be added
+# without editing source: set a comma-separated FRETWORK_CORS_ORIGINS env var.
+_CORS_ORIGINS_ENV_VAR = "FRETWORK_CORS_ORIGINS"
+
+
+def _resolve_allowed_origins(allowed_origins: Sequence[str] | None) -> list[str]:
+    if allowed_origins is not None:
+        return list(allowed_origins)
+    env_value = os.environ.get(_CORS_ORIGINS_ENV_VAR)
+    if env_value:
+        return [origin.strip() for origin in env_value.split(",") if origin.strip()]
+    return list(DEFAULT_ALLOWED_ORIGINS)
+
 
 class ReviewDecision(BaseModel):
     fingerprint: str
     decision: Literal["confirm", "reject"]
 
 
-def create_app(cfg: Config) -> FastAPI:
+def create_app(cfg: Config, allowed_origins: Sequence[str] | None = None) -> FastAPI:
     cfg.ensure_dirs()
     db.init_db(cfg.db_path)
     blobstore = BlobStore(cfg.blob_dir)
@@ -53,6 +79,15 @@ def create_app(cfg: Config) -> FastAPI:
     app = FastAPI(title="Fretwork Ingest", version=__version__)
     app.state.config = cfg
     app.state.blobstore = blobstore
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_resolve_allowed_origins(allowed_origins),
+        allow_credentials=False,
+        allow_methods=["GET", "POST"],
+        allow_headers=["*"],
+        expose_headers=[],
+    )
 
     def get_conn() -> Iterator[sqlite3.Connection]:
         conn = db.get_connection(cfg.db_path)

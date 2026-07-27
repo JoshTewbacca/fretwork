@@ -1,0 +1,263 @@
+/* Setlists view styles. Mobile-first, fits a 390px viewport. Uses only the
+   custom properties defined in src/index.css. */
+
+.setlists-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.setlists-create {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.setlists-create__name {
+  flex: 1 1 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 15px;
+  box-sizing: border-box;
+}
+
+.setlists-create__kind {
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.setlists-create__button {
+  appearance: none;
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid var(--color-accent);
+  border-radius: 8px;
+  background: var(--color-accent-muted);
+  color: var(--color-accent);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.setlists-create__button:disabled {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.setlists-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 20vh;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.setlists-empty-state p {
+  margin: 0;
+  max-width: 32ch;
+}
+
+.setlists-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--color-border);
+}
+
+.setlists-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.setlists-row__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 4px;
+  cursor: pointer;
+}
+
+.setlists-row__main:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.setlists-row__main[aria-pressed='true'] {
+  background: var(--color-accent-muted);
+}
+
+.setlists-row__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.setlists-row__name {
+  color: var(--color-text);
+  font-size: 15px;
+}
+
+.setlists-row__meta {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.setlists-row__actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.setlists-row__rename,
+.setlists-row__delete {
+  appearance: none;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.setlists-row__rename:focus-visible,
+.setlists-row__delete:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.setlist-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}
+
+.setlist-detail__title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.setlist-detail__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.setlist-song-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.setlist-song-row__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 4px;
+  cursor: pointer;
+}
+
+.setlist-song-row__main:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.setlist-song-row__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.setlist-song-row__title {
+  color: var(--color-text);
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setlist-song-row__artist {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setlist-song-row__missing {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.setlist-song-row__actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.setlist-song-row__move,
+.setlist-song-row__remove {
+  appearance: none;
+  min-height: 36px;
+  min-width: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.setlist-song-row__move:disabled {
+  color: var(--color-border);
+  cursor: not-allowed;
+}
+
+.setlist-song-row__move:focus-visible,
+.setlist-song-row__remove:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}

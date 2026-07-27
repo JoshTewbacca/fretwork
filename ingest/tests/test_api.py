@@ -95,3 +95,32 @@ def test_manifest_empty_by_default(tmp_path: Path) -> None:
 
     assert response.status_code == 200
     assert response.json() == {"songs": []}
+
+
+def test_cors_preflight_allows_configured_origin(tmp_path: Path) -> None:
+    app, _ = _make_app(tmp_path)
+    client = TestClient(app)
+    origin = "https://fretwork-kappa.vercel.app"
+
+    response = client.options(
+        "/health",
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == origin
+    assert "access-control-allow-credentials" not in response.headers
+
+
+def test_cors_header_present_on_normal_get(tmp_path: Path) -> None:
+    app, _ = _make_app(tmp_path)
+    client = TestClient(app)
+    origin = "http://localhost:5173"
+
+    response = client.get("/health", headers={"Origin": origin})
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == origin

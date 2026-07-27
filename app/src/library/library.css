@@ -10,6 +10,38 @@
   box-sizing: border-box;
 }
 
+.library-segmented {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+}
+
+.library-segmented__tab {
+  appearance: none;
+  flex: 1 1 0;
+  min-height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.library-segmented__tab.is-active {
+  background: var(--color-accent-muted);
+  color: var(--color-accent);
+}
+
+.library-segmented__tab:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
 .library-controls {
   display: flex;
   flex-direction: column;
@@ -96,10 +128,27 @@
 
 .library-row {
   display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.library-row__top {
+  display: flex;
   align-items: center;
   gap: 8px;
   min-height: 44px;
-  border-bottom: 1px solid var(--color-border);
+}
+
+.library-row__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 4px 4px;
+}
+
+.library-row__footer:empty {
+  display: none;
 }
 
 .library-row__main {
@@ -137,6 +186,14 @@
 .library-row__artist {
   color: var(--color-text-muted);
   font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-row__last-played {
+  color: var(--color-text-muted);
+  font-size: 11px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -183,4 +240,51 @@
   border-color: var(--color-accent);
   background: var(--color-accent-muted);
   color: var(--color-accent);
+}
+
+/* Compact "add to setlist" control embedded in a library row footer. */
+.add-to-setlist {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.add-to-setlist__select {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 32px;
+  padding: 0 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.add-to-setlist__button {
+  appearance: none;
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.add-to-setlist__button:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.add-to-setlist__confirmation {
+  flex: 0 0 auto;
+  color: var(--color-accent);
+  font-size: 11px;
+  white-space: nowrap;
 }

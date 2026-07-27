@@ -33,6 +33,17 @@ export interface LoopRegion {
   endBar: number
 }
 
+/** A note the user tapped, flattened so the UI never touches alphaTab types. */
+export interface SelectedNoteViewModel {
+  fret: number
+  /** alphaTab's 1-based string number. */
+  string: number
+  stringCount: number
+  /** 1-based, for display. */
+  barNumber: number
+  trackIndex: number
+}
+
 export interface PlayerStore {
   // --- state (bind, do not mutate) ---
   readonly scoreLoaded: ReadonlySignal<boolean>
@@ -61,6 +72,10 @@ export interface PlayerStore {
   readonly playerTrackIndex: ReadonlySignal<number>
   /** Synth backing track: the user's own part is muted, the rest plays. */
   readonly backingMode: ReadonlySignal<boolean>
+  /** The note the user tapped in the score, or null. */
+  readonly selectedNote: ReadonlySignal<SelectedNoteViewModel | null>
+  /** True once the score has been edited and not yet saved. */
+  readonly hasUnsavedCorrections: ReadonlySignal<boolean>
 
   // --- methods ---
   loadScore(data: ArrayBuffer | Uint8Array): void
@@ -88,6 +103,16 @@ export interface PlayerStore {
   setZoomPct(pct: number): void
   setPlayerTrack(trackIndex: number): void
   setBackingMode(enabled: boolean): void
+  clearNoteSelection(): void
+  /** Correct the tapped note's fret. Re-renders and regenerates playback. */
+  setSelectedNoteFret(fret: number): void
+  /** Move the tapped note to another string, bounded by the staff tuning. */
+  setSelectedNoteString(stringNumber: number): void
+  /**
+   * Serialise the current (possibly corrected) score as a Guitar Pro 7 file,
+   * so corrections can be persisted alongside the untouched original.
+   */
+  exportCorrectedScore(): Uint8Array | null
   /** Loop the bar currently under the cursor. */
   loopCurrentBar(): void
   /** Adopt a range the user selected by dragging across the score. */
@@ -114,6 +139,9 @@ export function createPlayerStore(
   // automatic detection resolves to the pre-bundled dep URL in dev, which 404s.
   settings.core.fontDirectory = '/font/'
   settings.core.enableLazyLoading = true
+  // Required for note-level hit detection, which the correction editor uses
+  // to know which note was tapped (api.noteMouseDown only fires with this on).
+  settings.core.includeNoteBounds = true
   settings.player.playerMode = alphaTab.PlayerMode.EnabledSynthesizer
   settings.player.enableCursor = true
   settings.player.enableUserInteraction = true
@@ -141,8 +169,37 @@ export function createPlayerStore(
   const zoomPct = signal(90)
   const playerTrackIndex = signal(0)
   const backingMode = signal(false)
+  const selectedNote: Signal<SelectedNoteViewModel | null> = signal(null)
+  const hasUnsavedCorrections = signal(false)
   // Last region the user looped, kept so the loop toggle is non-destructive.
   let lastLoopRegion: LoopRegion | null = null
+  // The live alphaTab note behind selectedNote. Kept out of the signal so the
+  // UI cannot reach into the score model.
+  let selectedRawNote: alphaTab.model.Note | null = null
+
+  function describeNote(note: alphaTab.model.Note): SelectedNoteViewModel {
+    const staff = note.beat.voice.bar.staff
+    return {
+      fret: note.fret,
+      string: note.string,
+      stringCount: staff.tuning.length,
+      barNumber: note.beat.voice.bar.index + 1,
+      trackIndex: staff.track.index,
+    }
+  }
+
+  /**
+   * Re-render after a model edit. renderScore (rather than render) is required:
+   * it regenerates the MIDI too, so playback reflects the corrected note
+   * instead of continuing to play the original.
+   */
+  function applyScoreEdit() {
+    const score = api.score
+    if (!score) return
+    hasUnsavedCorrections.value = true
+    api.renderScore(score, renderedTrackIndexes.value)
+    if (selectedRawNote) selectedNote.value = describeNote(selectedRawNote)
+  }
 
   const scoreTitle = computed(() => (scoreLoaded.value ? (api.score?.title ?? '') : ''))
   const scoreArtist = computed(() => (scoreLoaded.value ? (api.score?.artist ?? '') : ''))
@@ -161,6 +218,9 @@ export function createPlayerStore(
     loop.value = null
     lastLoopRegion = null
     backingMode.value = false
+    selectedRawNote = null
+    selectedNote.value = null
+    hasUnsavedCorrections.value = false
     currentBarIndex.value = 0
     barCount.value = score.masterBars.length
     tracks.value = score.tracks.map((t) => ({
@@ -182,6 +242,12 @@ export function createPlayerStore(
 
   api.playedBeatChanged.on((beat) => {
     currentBarIndex.value = beat.voice.bar.index
+  })
+
+  // Requires settings.core.includeNoteBounds, set above.
+  api.noteMouseDown.on((note) => {
+    selectedRawNote = note
+    selectedNote.value = describeNote(note)
   })
 
   api.playerReady.on(() => {
@@ -248,6 +314,8 @@ export function createPlayerStore(
     zoomPct,
     playerTrackIndex,
     backingMode,
+    selectedNote,
+    hasUnsavedCorrections,
     api,
 
     loadScore(data) {
@@ -399,6 +467,37 @@ export function createPlayerStore(
     setBackingMode(enabled) {
       backingMode.value = enabled
       store.setTrackMute(playerTrackIndex.value, enabled)
+    },
+
+    clearNoteSelection() {
+      selectedRawNote = null
+      selectedNote.value = null
+    },
+
+    setSelectedNoteFret(fret) {
+      const note = selectedRawNote
+      if (!note) return
+      const clamped = Math.min(36, Math.max(0, Math.round(fret)))
+      if (note.fret === clamped) return
+      note.fret = clamped
+      applyScoreEdit()
+    },
+
+    setSelectedNoteString(stringNumber) {
+      const note = selectedRawNote
+      if (!note) return
+      const count = note.beat.voice.bar.staff.tuning.length
+      const clamped = Math.min(count, Math.max(1, Math.round(stringNumber)))
+      if (note.string === clamped) return
+      note.string = clamped
+      applyScoreEdit()
+    },
+
+    exportCorrectedScore() {
+      const score = api.score
+      if (!score) return null
+      const exporter = new alphaTab.exporter.Gp7Exporter()
+      return exporter.export(score, api.settings)
     },
 
     loopCurrentBar() {

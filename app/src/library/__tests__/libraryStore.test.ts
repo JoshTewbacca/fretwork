@@ -98,6 +98,25 @@ describe('libraryStore.visibleSongs', () => {
     sortBy.value = 'recent'
     expect(visibleSongs.value.map((s) => s.id)).toEqual(['b', 'a'])
   })
+
+  it('sorts by recent-played, with never-played songs last', async () => {
+    const db = await getDb()
+    await putSong(db, makeSong({ id: 'a', addedAt: 1, lastPlayedAt: 5000 }))
+    await putSong(db, makeSong({ id: 'b', addedAt: 2, lastPlayedAt: undefined }))
+    await putSong(db, makeSong({ id: 'c', addedAt: 3, lastPlayedAt: 9000 }))
+    await putSong(db, makeSong({ id: 'd', addedAt: 4, lastPlayedAt: undefined }))
+    await refresh()
+
+    sortBy.value = 'recent-played'
+
+    const order = visibleSongs.value.map((s) => s.id)
+    // Played songs first, most-recently-played first; never-played songs after,
+    // in whatever relative order (stable sort keeps addedAt-desc from refresh()).
+    expect(order.slice(0, 2)).toEqual(['c', 'a'])
+    expect(order.slice(2)).toEqual(expect.arrayContaining(['b', 'd']))
+    expect(order.indexOf('b')).toBeGreaterThan(order.indexOf('a'))
+    expect(order.indexOf('d')).toBeGreaterThan(order.indexOf('c'))
+  })
 })
 
 describe('libraryStore.toggleFavourite', () => {

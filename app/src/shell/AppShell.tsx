@@ -5,6 +5,7 @@ import { PlayerScreen } from './screens/PlayerScreen'
 import { SearchScreen } from './screens/SearchScreen'
 import { LibraryScreen } from './screens/LibraryScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
+import { StorageBanner } from '../offline/StorageBanner'
 import './AppShell.css'
 
 interface TabDef {
@@ -25,6 +26,7 @@ export function AppShell() {
 
   return (
     <div class="app-shell">
+      <StorageBanner />
       <main class="app-content">
         {/* PlayerScreen stays mounted so the alphaTab player and its audio
             context survive tab switches; the other screens are cheap. */}

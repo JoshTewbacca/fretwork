@@ -8,7 +8,7 @@ import { getDb } from '../db/open.ts'
 import { listSongs, putSong, deleteSong } from '../db/songs.ts'
 import { sweepUnreferencedBlobs } from '../db/gc.ts'
 
-export type SortBy = 'recent' | 'title' | 'artist'
+export type SortBy = 'recent' | 'recent-played' | 'title' | 'artist'
 
 /** All songs, newest first. Populated by refresh(). */
 export const songs = signal<Song[]>([])
@@ -18,6 +18,15 @@ export const favouritesOnly = signal(false)
 
 function byAddedAtDesc(a: Song, b: Song): number {
   return b.addedAt - a.addedAt
+}
+
+// Never-played songs (no lastPlayedAt) always sort after any played song,
+// regardless of direction; among played songs, most-recent first.
+function byLastPlayedDesc(a: Song, b: Song): number {
+  if (a.lastPlayedAt == null && b.lastPlayedAt == null) return 0
+  if (a.lastPlayedAt == null) return 1
+  if (b.lastPlayedAt == null) return -1
+  return b.lastPlayedAt - a.lastPlayedAt
 }
 
 function sortSongs(list: Song[], by: SortBy): Song[] {
@@ -31,6 +40,9 @@ function sortSongs(list: Song[], by: SortBy): Song[] {
       break
     case 'recent':
       sorted.sort(byAddedAtDesc)
+      break
+    case 'recent-played':
+      sorted.sort(byLastPlayedDesc)
       break
   }
   return sorted
