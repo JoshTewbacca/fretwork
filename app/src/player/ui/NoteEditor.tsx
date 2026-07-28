@@ -1,7 +1,9 @@
 import type { PlayerStore } from '../core/PlayerStore'
+import { Stepper } from './Stepper'
 
-// Correction editor. Appears only when a note is tapped in the score, so it
-// stays out of the way during normal practice. Songsterr cannot do this at all.
+// Correction editor. Reached by tapping a note in the score, which opens the
+// sheet on this panel, so it stays out of the way during normal practice.
+// Songsterr cannot do this at all.
 export function NoteEditor({
   store,
   onSave,
@@ -17,83 +19,59 @@ export function NoteEditor({
   const dirty = store.hasUnsavedCorrections.value
 
   return (
-    <div class="note-editor">
-      <div class="note-editor__row">
+    <>
+      <h3 class="sheet__title">Correct this note</h3>
+      <p class="sheet__sub">
         <span class="note-editor__where">
           Bar {note.barNumber}, string {note.string}
-        </span>
-        <button
-          type="button"
-          class="btn note-editor__close"
-          onClick={() => store.clearNoteSelection()}
-        >
+        </span>{' '}
+        · corrections are kept separately, so the imported file is never changed.
+      </p>
+
+      <div class="sheet__field">
+        <div class="row">
+          <div class="row__text">
+            <div class="row__label">Fret</div>
+          </div>
+          <Stepper
+            label=""
+            ariaLabel="fret"
+            value={note.fret}
+            min={0}
+            max={36}
+            onChange={(v) => store.setSelectedNoteFret(v)}
+          />
+        </div>
+        <div class="row">
+          <div class="row__text">
+            <div class="row__label">String</div>
+            <p class="row__hint">1 is the highest string.</p>
+          </div>
+          <Stepper
+            label=""
+            ariaLabel="string"
+            value={note.string}
+            min={1}
+            max={note.stringCount}
+            format={(v) => `${v} of ${note.stringCount}`}
+            onChange={(v) => store.setSelectedNoteString(v)}
+          />
+        </div>
+      </div>
+
+      <div class="note-editor__actions">
+        <button type="button" class="btn" onClick={() => store.clearNoteSelection()}>
           Done
         </button>
+        <button
+          type="button"
+          class="btn btn--primary"
+          disabled={!dirty || saving}
+          onClick={onSave}
+        >
+          {saving ? 'Saving…' : 'Save corrections'}
+        </button>
       </div>
-
-      <div class="note-editor__row">
-        <span class="note-editor__label">Fret</span>
-        <div class="note-editor__stepper">
-          <button
-            type="button"
-            class="btn"
-            aria-label="Lower fret"
-            onClick={() => store.setSelectedNoteFret(note.fret - 1)}
-          >
-            &minus;
-          </button>
-          <span class="note-editor__value">{note.fret}</span>
-          <button
-            type="button"
-            class="btn"
-            aria-label="Raise fret"
-            onClick={() => store.setSelectedNoteFret(note.fret + 1)}
-          >
-            +
-          </button>
-        </div>
-      </div>
-
-      <div class="note-editor__row">
-        <span class="note-editor__label">String</span>
-        <div class="note-editor__stepper">
-          <button
-            type="button"
-            class="btn"
-            aria-label="Previous string"
-            onClick={() => store.setSelectedNoteString(note.string - 1)}
-          >
-            &minus;
-          </button>
-          <span class="note-editor__value">
-            {note.string} of {note.stringCount}
-          </span>
-          <button
-            type="button"
-            class="btn"
-            aria-label="Next string"
-            onClick={() => store.setSelectedNoteString(note.string + 1)}
-          >
-            +
-          </button>
-        </div>
-      </div>
-
-      {dirty && (
-        <div class="note-editor__row note-editor__save">
-          <span class="note-editor__hint">
-            Corrections are kept separately; the original file is never changed.
-          </span>
-          <button
-            type="button"
-            class="button button--primary"
-            disabled={saving}
-            onClick={onSave}
-          >
-            {saving ? 'Saving...' : 'Save corrections'}
-          </button>
-        </div>
-      )}
-    </div>
+    </>
   )
 }

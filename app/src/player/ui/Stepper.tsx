@@ -1,6 +1,8 @@
-// Minus / value / plus stepper shared by TrackMixer (capo, transpose) and
-// DisplayControls (zoom).
+// Minus / value / plus stepper, shared by the track list (capo, transpose),
+// the View panel (zoom), the note editor and Settings.
 interface StepperProps {
+  /** Visible legend above the control. Empty when the surrounding row already
+   *  carries a label; pass `ariaLabel` in that case. */
   label: string
   value: number
   min: number
@@ -10,10 +12,22 @@ interface StepperProps {
   onChange: (value: number) => void
   /** Custom rendering for the value, e.g. "+3" or "120%". */
   format?: (value: number) => string
+  /** What the buttons announce. Defaults to `label`. */
+  ariaLabel?: string
 }
 
-export function Stepper({ label, value, min, max, step = 1, onChange, format }: StepperProps) {
+export function Stepper({
+  label,
+  value,
+  min,
+  max,
+  step = 1,
+  onChange,
+  format,
+  ariaLabel,
+}: StepperProps) {
   const display = format ? format(value) : String(value)
+  const name = ariaLabel || label
 
   return (
     <div class="stepper">
@@ -23,7 +37,7 @@ export function Stepper({ label, value, min, max, step = 1, onChange, format }: 
           type="button"
           class="stepper__button"
           disabled={value <= min}
-          aria-label={`Decrease ${label}`}
+          aria-label={`Decrease ${name}`}
           onClick={() => onChange(Math.max(min, value - step))}
         >
           &minus;
@@ -33,7 +47,7 @@ export function Stepper({ label, value, min, max, step = 1, onChange, format }: 
           type="button"
           class="stepper__button"
           disabled={value >= max}
-          aria-label={`Increase ${label}`}
+          aria-label={`Increase ${name}`}
           onClick={() => onChange(Math.min(max, value + step))}
         >
           +

@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'preact/hooks'
 import '../screens/screens.css'
 import '../../desktop/settings.css'
+import { Switch } from '../../player/ui/Switch.tsx'
+import { Stepper } from '../../player/ui/Stepper.tsx'
+import { MAX_ZOOM_PCT, MIN_ZOOM_PCT } from '../../player/core/zoom.ts'
+import { loadPrefs, prefs, prefsLoaded, setPrefs } from '../../settings/prefs.ts'
 import { getDb } from '../../db/open.ts'
 import { getDesktopConfig, setDesktopConfig, candidateUrls } from '../../desktop/config.ts'
 import { checkHealth, isMixedContentBlocked } from '../../desktop/client.ts'
@@ -84,7 +88,7 @@ function DesktopConnectionSection() {
 
   return (
     <div class="settings-section">
-      <h3 class="settings-section__title">Desktop connection</h3>
+      <h3 class="h-sec">Desktop connection</h3>
       <p class="settings-section__hint">
         The desktop is only needed to bring in new audio and review matches -- playing tabs you
         already have works without it.
@@ -160,6 +164,74 @@ function DesktopConnectionSection() {
   )
 }
 
+/**
+ * How tab is read. These are app-wide defaults; the player's View sheet can
+ * override any of them for the song in hand without changing what is stored
+ * here, so a one-off look at the notation does not become the new default.
+ */
+function NotationSection() {
+  useEffect(() => {
+    void loadPrefs()
+  }, [])
+
+  const { showNotation, showAllTracks, defaultZoomPct } = prefs.value
+  if (!prefsLoaded.value) return null
+
+  return (
+    <div class="settings-section">
+      <h3 class="h-sec">Notation</h3>
+      <div class="card card--rows">
+        <div class="row">
+          <div class="row__text">
+            <div class="row__label">Show standard notation</div>
+            <p class="row__hint">
+              Draws the five-line stave above the tab. Off shows tab only.
+            </p>
+          </div>
+          <Switch
+            label="Show standard notation"
+            hideLabel
+            on={showNotation}
+            onToggle={() => void setPrefs({ showNotation: !showNotation })}
+          />
+        </div>
+
+        <div class="row">
+          <div class="row__text">
+            <div class="row__label">Show all tracks</div>
+            <p class="row__hint">
+              Off draws only the part you play, which keeps the tab large.
+            </p>
+          </div>
+          <Switch
+            label="Show all tracks"
+            hideLabel
+            on={showAllTracks}
+            onToggle={() => void setPrefs({ showAllTracks: !showAllTracks })}
+          />
+        </div>
+
+        <div class="row">
+          <div class="row__text">
+            <div class="row__label">Default tab size</div>
+            <p class="row__hint">Starting zoom for songs you have not adjusted.</p>
+          </div>
+          <Stepper
+            label=""
+            ariaLabel="default tab size"
+            value={defaultZoomPct}
+            min={MIN_ZOOM_PCT}
+            max={MAX_ZOOM_PCT}
+            step={10}
+            format={(v) => `${v}%`}
+            onChange={(v) => void setPrefs({ defaultZoomPct: v })}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function StorageSection() {
   const [estimate, setEstimate] = useState<{ usageBytes: number; quotaBytes: number } | null>(null)
   const [persisted, setPersisted] = useState<boolean | null>(null)
@@ -178,29 +250,31 @@ function StorageSection() {
 
   return (
     <div class="settings-section">
-      <h3 class="settings-section__title">Storage</h3>
-      {estimate ? (
-        <div class="settings-storage">
-          <span>
-            {formatMb(estimate.usageBytes)} used of {formatMb(estimate.quotaBytes)} available
-          </span>
-          <div class="settings-storage__bar">
-            <div
-              class="settings-storage__bar-fill"
-              style={{
-                width: `${Math.min(100, (estimate.usageBytes / Math.max(estimate.quotaBytes, 1)) * 100)}%`,
-              }}
-            />
-          </div>
-        </div>
-      ) : (
-        <p class="settings-section__hint">Storage usage is not available in this browser.</p>
-      )}
-      {persisted !== null && (
-        <p class="settings-section__hint">
-          Persistent storage: {persisted ? 'granted' : 'not granted'}
-        </p>
-      )}
+      <h3 class="h-sec">Storage</h3>
+      <div class="card">
+        {estimate ? (
+          <>
+            <div class="card__title">
+              {formatMb(estimate.usageBytes)} of {formatMb(estimate.quotaBytes)} used
+            </div>
+            {persisted !== null && (
+              <div class="card__sub">
+                Persistent storage {persisted ? 'granted' : 'not granted'}
+              </div>
+            )}
+            <div class="meter">
+              <span
+                class="meter__fill"
+                style={{
+                  width: `${Math.min(100, (estimate.usageBytes / Math.max(estimate.quotaBytes, 1)) * 100)}%`,
+                }}
+              />
+            </div>
+          </>
+        ) : (
+          <p class="settings-section__hint">Storage usage is not available in this browser.</p>
+        )}
+      </div>
     </div>
   )
 }
@@ -208,26 +282,33 @@ function StorageSection() {
 export function SettingsScreen() {
   return (
     <div class="settings-screen">
-      <DesktopConnectionSection />
+      <h1 class="screen-title">Settings</h1>
 
-      <div class="settings-section">
-        <h3 class="settings-section__title">Ingest review</h3>
-        <ReviewQueue />
-      </div>
+      <NotationSection />
 
       <StorageSection />
 
+      <DesktopConnectionSection />
+
       <div class="settings-section">
-        <h3 class="settings-section__title">Install</h3>
+        <h3 class="h-sec">Ingest review</h3>
+        <ReviewQueue />
+      </div>
+
+      <div class="settings-section">
+        <h3 class="h-sec">Install</h3>
         <InstallHelp />
       </div>
 
-      <div class="settings-list">
-        <div class="settings-row">
-          <span class="settings-row__label">About</span>
-          <span class="settings-row__value">
-            {APP_NAME} {APP_VERSION}
-          </span>
+      <div class="settings-section">
+        <h3 class="h-sec">About</h3>
+        <div class="card card--rows">
+          <div class="row">
+            <div class="row__text">
+              <div class="row__label">{APP_NAME}</div>
+            </div>
+            <span class="settings-row__value">{APP_VERSION}</span>
+          </div>
         </div>
       </div>
     </div>

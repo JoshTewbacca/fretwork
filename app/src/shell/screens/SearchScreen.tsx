@@ -31,10 +31,11 @@ export function SearchScreen() {
 
   return (
     <div class="search-screen">
+      <h1 class="screen-title">Search</h1>
       <form class="search-form" onSubmit={onSubmit}>
         <input
           type="search"
-          class="search-input"
+          class="input search-input"
           placeholder="Song title"
           aria-label="Song title"
           value={searchStore.query.value}
@@ -92,19 +93,21 @@ export function SearchScreen() {
             {results.map((result) => {
               const isAdding = searchStore.addingId.value === result.externalId
               return (
-                <li key={result.externalId} class="search-row">
-                  <div class="search-row__text">
-                    <span class="search-row__title">{result.title}</span>
-                    <span class="search-row__artist">{result.artist}</span>
+                <li key={result.externalId} class="card">
+                  <div class="card__top">
+                    <div class="card__text">
+                      <div class="card__title">{result.title}</div>
+                      <div class="card__sub">{result.artist}</div>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn--small search-row__add"
+                      disabled={isAdding}
+                      onClick={() => void onAdd(result)}
+                    >
+                      {isAdding ? 'Adding…' : 'Add'}
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    class="button search-row__add"
-                    disabled={isAdding}
-                    onClick={() => void onAdd(result)}
-                  >
-                    {isAdding ? 'Adding...' : 'Add'}
-                  </button>
                 </li>
               )
             })}

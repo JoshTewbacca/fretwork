@@ -6,6 +6,7 @@
 
 import * as alphaTab from '@coderline/alphatab'
 import { signal, computed, type ReadonlySignal, type Signal } from '@preact/signals'
+import { DEFAULT_ZOOM_PCT, clampZoom } from './zoom'
 
 export type TransportState = 'stopped' | 'playing' | 'paused'
 
@@ -67,6 +68,10 @@ export interface PlayerStore {
   readonly currentBarIndex: ReadonlySignal<number>
   readonly barCount: ReadonlySignal<number>
   readonly staveProfile: ReadonlySignal<StaveProfileName>
+  /** True when a standard-notation stave is drawn above the tab. */
+  readonly notationVisible: ReadonlySignal<boolean>
+  /** False renders only the track being played, which keeps the tab large. */
+  readonly showAllTracks: ReadonlySignal<boolean>
   readonly zoomPct: ReadonlySignal<number>
   /** The track the user plays; muted when backing mode is on. */
   readonly playerTrackIndex: ReadonlySignal<number>
@@ -82,6 +87,8 @@ export interface PlayerStore {
   playPause(): void
   stop(): void
   seekToTick(tick: number): void
+  /** Jump to the start of a zero-based bar. Used by the bar rail. */
+  seekToBar(barIndex: number): void
   setSpeedPct(pct: number): void
   setLoop(region: LoopRegion | null): void
   /**
@@ -100,6 +107,10 @@ export interface PlayerStore {
   /** Which tracks are rendered as notation (the mixer affects audio for all). */
   setRenderedTracks(trackIndexes: number[]): void
   setStaveProfile(profile: StaveProfileName): void
+  /** Show or hide the standard-notation stave, keeping the tab either way. */
+  setNotationVisible(visible: boolean): void
+  /** Render every track, or only the one being played. */
+  setShowAllTracks(enabled: boolean): void
   setZoomPct(pct: number): void
   setPlayerTrack(trackIndex: number): void
   setBackingMode(enabled: boolean): void
@@ -126,14 +137,68 @@ export interface PlayerStore {
 export interface PlayerStoreOptions {
   /** URL for the soundfont; defaults to the bundled sonivox.sf3 asset URL. */
   soundFontUrl: string
+  /** Initial stave profile. Defaults to 'tab': notation is opt-in. */
+  staveProfile?: StaveProfileName
+  /** Initial zoom percentage. */
+  zoomPct?: number
+  /** Render every track rather than only the one being played. */
+  showAllTracks?: boolean
 }
 
 const GUITAR_MIDI_PROGRAMS = new Set([24, 25, 26, 27, 28, 29, 30, 31])
+
+/** Notation drawn inside the canvas that the app chrome already shows, or that
+ *  only costs vertical space on a phone. */
+const HIDDEN_NOTATION_ELEMENTS = [
+  alphaTab.NotationElement.ScoreTitle,
+  alphaTab.NotationElement.ScoreSubTitle,
+  alphaTab.NotationElement.ScoreArtist,
+  alphaTab.NotationElement.ScoreAlbum,
+  alphaTab.NotationElement.ScoreWords,
+  alphaTab.NotationElement.ScoreMusic,
+  alphaTab.NotationElement.ScoreWordsAndMusic,
+  alphaTab.NotationElement.ScoreCopyright,
+]
+
+const STAVE_PROFILE_MAP: Record<StaveProfileName, alphaTab.StaveProfile> = {
+  default: alphaTab.StaveProfile.Default,
+  scoreTab: alphaTab.StaveProfile.ScoreTab,
+  tab: alphaTab.StaveProfile.Tab,
+  score: alphaTab.StaveProfile.Score,
+}
+
+/**
+ * Render the score warm-on-dark instead of alphaTab's black-on-white default,
+ * so the score field belongs to the app rather than sitting in it as a white
+ * rectangle. Values mirror the --color-paper / --color-bone tokens in
+ * src/index.css; keep them in step.
+ */
+function applyDarkNotationTheme(settings: alphaTab.Settings): void {
+  const { Color } = alphaTab.model
+  const resources = settings.display.resources
+  const bone = (alpha: number) => new Color(0xed, 0xe6, 0xd6, alpha)
+
+  resources.mainGlyphColor = bone(0xff)
+  resources.secondaryGlyphColor = bone(0x9e)
+  resources.scoreInfoColor = bone(0xcc)
+  resources.staffLineColor = bone(0x4d)
+  resources.barSeparatorColor = bone(0x82)
+  // Bar numbers are navigation, not notation: amber ties them to the playhead
+  // and the bar rail rather than alphaTab's default red.
+  resources.barNumberColor = new Color(0xf0, 0xa9, 0x3b, 0xcc)
+  // Fret numbers are the whole point of the screen, so they get a size of
+  // their own rather than inheriting the notation-scaled default.
+  resources.tablatureFont.size = 15
+}
 
 export function createPlayerStore(
   element: HTMLElement,
   options: PlayerStoreOptions,
 ): PlayerStore {
+  const initialProfile: StaveProfileName = options.staveProfile ?? 'tab'
+  const initialZoom = clampZoom(options.zoomPct ?? DEFAULT_ZOOM_PCT)
+  const initialShowAllTracks = options.showAllTracks ?? false
+
   const settings = new alphaTab.Settings()
   // The alphatab-vite plugin copies the Bravura files to public/font/; the
   // automatic detection resolves to the pre-bundled dep URL in dev, which 404s.
@@ -145,7 +210,12 @@ export function createPlayerStore(
   settings.player.playerMode = alphaTab.PlayerMode.EnabledSynthesizer
   settings.player.enableCursor = true
   settings.player.enableUserInteraction = true
-  settings.display.scale = 0.9
+  settings.display.scale = initialZoom / 100
+  settings.display.staveProfile = STAVE_PROFILE_MAP[initialProfile]
+  applyDarkNotationTheme(settings)
+  for (const notationElement of HIDDEN_NOTATION_ELEMENTS) {
+    settings.notation.elements.set(notationElement, false)
+  }
 
   const api = new alphaTab.AlphaTabApi(element, settings)
 
@@ -165,8 +235,9 @@ export function createPlayerStore(
   const audioUnlocked = signal(false)
   const currentBarIndex = signal(0)
   const barCount = signal(0)
-  const staveProfile: Signal<StaveProfileName> = signal('default')
-  const zoomPct = signal(90)
+  const staveProfile: Signal<StaveProfileName> = signal(initialProfile)
+  const showAllTracks = signal(initialShowAllTracks)
+  const zoomPct = signal(initialZoom)
   const playerTrackIndex = signal(0)
   const backingMode = signal(false)
   const selectedNote: Signal<SelectedNoteViewModel | null> = signal(null)
@@ -203,6 +274,25 @@ export function createPlayerStore(
 
   const scoreTitle = computed(() => (scoreLoaded.value ? (api.score?.title ?? '') : ''))
   const scoreArtist = computed(() => (scoreLoaded.value ? (api.score?.artist ?? '') : ''))
+  const notationVisible = computed(
+    () => staveProfile.value === 'scoreTab' || staveProfile.value === 'score',
+  )
+
+  /**
+   * Apply the current track-visibility rule. Rendering only the played track is
+   * the default: it is what keeps the tab legible on a phone, since every extra
+   * track costs a stave the user is not reading.
+   */
+  function applyRenderedTracks() {
+    const score = api.score
+    if (!score) return
+    const selected = showAllTracks.value
+      ? score.tracks
+      : score.tracks.filter((t) => t.index === playerTrackIndex.value)
+    if (selected.length === 0) return
+    renderedTrackIndexes.value = selected.map((t) => t.index)
+    api.renderTracks(selected)
+  }
 
   api.soundFontLoaded.on(() => {
     // no state needed beyond playerReady; kept for debug logging hooks later
@@ -234,10 +324,11 @@ export function createPlayerStore(
       transpositionPitch: 0,
       capo: t.staves[0]?.capo ?? 0,
     }))
-    renderedTrackIndexes.value = score.tracks.map((t) => t.index)
-    // Default the "your part" selection to the first guitar track.
+    // Default the "your part" selection to the first guitar track, then render
+    // to match: with showAllTracks off this is what makes the tab large.
     const firstGuitar = tracks.value.find((t) => t.isGuitar)
     playerTrackIndex.value = firstGuitar ? firstGuitar.index : 0
+    applyRenderedTracks()
   })
 
   api.playedBeatChanged.on((beat) => {
@@ -311,6 +402,8 @@ export function createPlayerStore(
     currentBarIndex,
     barCount,
     staveProfile,
+    notationVisible,
+    showAllTracks,
     zoomPct,
     playerTrackIndex,
     backingMode,
@@ -336,6 +429,14 @@ export function createPlayerStore(
 
     seekToTick(tick) {
       api.tickPosition = tick
+    },
+
+    seekToBar(barIndex) {
+      const clamped = Math.min(Math.max(0, Math.round(barIndex)), Math.max(0, barCount.value - 1))
+      const ticks = barRangeToTicks({ startBar: clamped, endBar: clamped })
+      if (!ticks) return
+      api.tickPosition = ticks.startTick
+      currentBarIndex.value = clamped
     },
 
     setSpeedPct(pct) {
@@ -434,20 +535,26 @@ export function createPlayerStore(
     },
 
     setStaveProfile(profile) {
+      if (staveProfile.value === profile) return
       staveProfile.value = profile
-      const map: Record<StaveProfileName, alphaTab.StaveProfile> = {
-        default: alphaTab.StaveProfile.Default,
-        scoreTab: alphaTab.StaveProfile.ScoreTab,
-        tab: alphaTab.StaveProfile.Tab,
-        score: alphaTab.StaveProfile.Score,
-      }
-      api.settings.display.staveProfile = map[profile]
+      api.settings.display.staveProfile = STAVE_PROFILE_MAP[profile]
       api.updateSettings()
       api.render()
     },
 
+    setNotationVisible(visible) {
+      store.setStaveProfile(visible ? 'scoreTab' : 'tab')
+    },
+
+    setShowAllTracks(enabled) {
+      if (showAllTracks.value === enabled) return
+      showAllTracks.value = enabled
+      applyRenderedTracks()
+    },
+
     setZoomPct(pct) {
-      const clamped = Math.min(180, Math.max(50, Math.round(pct)))
+      const clamped = clampZoom(pct)
+      if (zoomPct.value === clamped) return
       zoomPct.value = clamped
       api.settings.display.scale = clamped / 100
       api.updateSettings()
@@ -456,12 +563,15 @@ export function createPlayerStore(
 
     setPlayerTrack(trackIndex) {
       const previous = playerTrackIndex.value
+      if (previous === trackIndex) return
       playerTrackIndex.value = trackIndex
       // Move the backing-track mute with the selection.
       if (backingMode.value) {
         store.setTrackMute(previous, false)
         store.setTrackMute(trackIndex, true)
       }
+      // When only the played part is drawn, changing part changes the score.
+      if (!showAllTracks.value) applyRenderedTracks()
     },
 
     setBackingMode(enabled) {

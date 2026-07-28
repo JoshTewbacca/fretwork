@@ -1,555 +1,556 @@
-/* Player controls: mobile-first, self-contained. Uses only the app's
-   existing custom properties (see src/index.css) so it can be dropped
-   anywhere without depending on other stylesheets. Fits a 390px viewport
-   with no horizontal overflow; interactive targets are at least 44x44px. */
+/* Player chrome: app bar, bar rail, score field, dock and sheet.
+   Mobile-first, 390px viewport, interactive targets at least 44px.
+   Uses only the tokens and primitives from src/index.css. */
 
-.player-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  box-sizing: border-box;
-  max-width: 100%;
-  padding: 10px 12px;
-  background: var(--color-surface);
-  border-top: 1px solid var(--color-border);
-  font-size: 14px;
-  /* The score is the point of this screen: never let the control stack push
-     it off-screen. Beyond this the panel scrolls internally instead. */
-  max-height: 38dvh;
-  overflow-y: auto;
+/* --- App bar --- */
+
+.player-bar {
   flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 16px 10px;
 }
 
-.player-controls * {
-  box-sizing: border-box;
+.player-bar__meta {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
-.player-controls--empty {
-  align-items: center;
-  text-align: center;
-  padding: 24px 16px;
+.player-bar__title {
+  font-size: 16px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.player-controls__hint {
-  margin: 0;
+.player-bar__sub {
+  font-size: 12px;
   color: var(--color-text-muted);
-  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.player-controls__section {
-  border-top: 1px solid var(--color-border);
-  padding-top: 4px;
-}
-
-.player-controls__section summary {
-  display: flex;
-  align-items: center;
-  min-height: 40px;
-  padding: 6px 4px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
-  cursor: pointer;
-  list-style: none;
-}
-
-.player-controls__section summary::-webkit-details-marker {
-  display: none;
-}
-
-.player-controls__section summary::after {
-  content: '+';
-  margin-left: auto;
-  font-size: 18px;
-  color: var(--color-text-muted);
-}
-
-.player-controls__section[open] summary::after {
-  content: '\2212';
-}
-
-.player-controls__section > :not(summary) {
-  padding: 4px 4px 12px;
-}
-
-/* Generic small button, reused by loop actions and the track mixer. */
-.btn {
+.player-bar__action {
   appearance: none;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--color-surface);
-  color: var(--color-text);
-  min-width: 44px;
-  min-height: 44px;
-  padding: 8px 14px;
+  color: var(--color-text-muted);
   font: inherit;
-  font-size: 14px;
   cursor: pointer;
 }
 
-.btn.is-active {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-  background: var(--color-accent-muted);
-}
-
-.btn:focus-visible {
+.player-bar__action:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
-.btn--small {
-  padding: 6px 10px;
-  font-size: 13px;
+/* --- Bar rail -------------------------------------------------------------
+   The signature element: one strip showing where you are, what is looped, and
+   which bars are marked trouble spots. Tapping it seeks. */
+
+.bar-rail {
+  appearance: none;
+  position: relative;
+  flex: none;
+  display: block;
+  width: calc(100% - 32px);
+  height: 26px;
+  margin: 0 16px 8px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  overflow: hidden;
+  cursor: pointer;
 }
 
-/* --- Transport bar --- */
+.bar-rail:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
 
-.transport-bar {
+/* One hairline per bar, drawn as a repeating background so the cost does not
+   grow with the length of the song. Suppressed when bars get too dense to
+   read, where it would only add noise. */
+.bar-rail__ticks {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 7px;
+  background-image: linear-gradient(
+    to right,
+    transparent calc(100% - 1px),
+    rgba(255, 255, 255, 0.06) calc(100% - 1px)
+  );
+  background-size: var(--bar-width) 100%;
+}
+
+.bar-rail__mark {
+  position: absolute;
+  bottom: 0;
+  height: 11px;
+  min-width: 2px;
+  background: var(--color-progress);
+  opacity: 0.85;
+}
+
+.bar-rail__loop {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 4px;
+  background: var(--color-accent-muted);
+  border-left: 2px solid var(--color-accent-line);
+  border-right: 2px solid var(--color-accent-line);
+}
+
+.bar-rail__head {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-accent);
+  box-shadow: 0 0 9px 1px rgba(240, 169, 59, 0.55);
+}
+
+.bar-rail__legend {
+  position: absolute;
+  top: 4px;
+  right: 7px;
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+/* --- Dock ---------------------------------------------------------------
+   The three controls reached with a guitar in hand. Everything else lives in
+   the sheet, so nothing here can grow and push the score around. */
+
+.player-dock {
+  flex: none;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  padding: 12px 16px 10px;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-accent-line);
 }
 
-.transport-bar__primary {
+.player-dock__row {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: 12px;
 }
 
-.transport-bar__play {
-  appearance: none;
-  flex: 1 1 auto;
-  border: none;
-  border-radius: 12px;
-  background: var(--color-accent);
-  color: var(--color-bg);
-  min-height: 48px;
-  font: inherit;
-  font-size: 17px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.transport-bar__play:focus-visible {
-  outline: 2px solid var(--color-text);
-  outline-offset: 2px;
-}
-
-.transport-bar__stop {
+.player-dock__play {
   appearance: none;
   flex: none;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-paper);
+  cursor: pointer;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 8px 20px -8px rgba(240, 169, 59, 0.7);
+}
+
+.player-dock__play:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 3px;
+}
+
+.player-dock__readout {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.player-dock__time {
+  font-size: 19px;
+  font-weight: 620;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-dock__total {
+  color: var(--color-text-faint);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.player-dock__meta {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-dock__button {
+  appearance: none;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: 48px;
+  height: 48px;
   border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  min-width: 44px;
-  min-height: 56px;
-  padding: 0 18px;
+  background: var(--color-surface-raised);
+  color: var(--color-text-muted);
   font: inherit;
-  font-size: 14px;
   cursor: pointer;
 }
 
-.transport-bar__stop:focus-visible {
+.player-dock__button.is-active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-muted);
+  color: var(--color-accent);
+}
+
+.player-dock__button:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
-.transport-bar__readout {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-  color: var(--color-text-muted);
-  font-size: 13px;
+.player-dock__button-label {
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
 }
 
-.transport-bar__time {
-  font-variant-numeric: tabular-nums;
-}
+/* --- Speed rail ---------------------------------------------------------
+   A detented groove rather than a plain slider: 50, 75 and 100 are the values
+   actually used, so they get physical marks to land on. The native input is
+   kept for keyboard and assistive tech and rendered transparent on top. */
 
-/* --- Speed control --- */
-
-.speed-control {
+.speed-rail {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.speed-control__header {
+.speed-rail__head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
-  color: var(--color-text-muted);
-  font-size: 13px;
 }
 
-.speed-control__value {
-  color: var(--color-text);
+.speed-rail__value {
+  font-size: 13px;
+  font-weight: 620;
+  color: var(--color-accent);
   font-variant-numeric: tabular-nums;
 }
 
-.speed-control__range {
-  width: 100%;
-  height: 44px;
-  margin: 0;
-  accent-color: var(--color-accent);
-}
-
-.speed-control__presets {
-  display: flex;
-  gap: 8px;
-}
-
-.speed-control__preset {
-  appearance: none;
-  flex: 1 1 0;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  min-height: 44px;
-  padding: 6px 4px;
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.speed-control__preset.is-active {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-  background: var(--color-accent-muted);
-}
-
-.speed-control__preset:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-/* --- Loop control --- */
-
-.loop-control {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.loop-control__row {
-  display: flex;
-  flex-direction: column;
-}
-
-.loop-control__readout {
-  padding: 0 4px;
-  color: var(--color-text-muted);
-  font-size: 13px;
-}
-
-.loop-control__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.loop-control__hint {
-  margin: 4px 0 0;
-  padding: 0 4px;
-  color: var(--color-text-muted);
-  font-size: 12px;
-}
-
-/* --- Switch (shared by LoopControl and ToggleRow) --- */
-
-.switch {
-  appearance: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  min-height: 44px;
-  padding: 8px 4px;
-  border: none;
-  background: none;
-  color: var(--color-text);
-  font: inherit;
-  font-size: 15px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.switch:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-.switch__track {
+.speed-rail__track {
   position: relative;
-  flex: none;
-  width: 44px;
-  height: 24px;
-  border-radius: 999px;
-  background: var(--color-border);
-  transition: background-color 0.15s ease;
+  height: 28px;
 }
 
-.switch__track.is-on {
-  background: var(--color-accent);
+.speed-rail__groove,
+.speed-rail__fill {
+  position: absolute;
+  top: 12px;
+  height: 4px;
+  border-radius: 2px;
+  pointer-events: none;
 }
 
-.switch__thumb {
+.speed-rail__groove {
+  left: 0;
+  right: 0;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+}
+
+.speed-rail__fill {
+  left: 0;
+  background: var(--color-accent-line);
+}
+
+.speed-rail__detent {
+  position: absolute;
+  top: 7px;
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.14);
+  pointer-events: none;
+}
+
+.speed-rail__thumb {
   position: absolute;
   top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--color-text);
-  transition: transform 0.15s ease;
+  width: 24px;
+  height: 24px;
+  transform: translateX(-50%);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 7px;
+  background: var(--color-surface-raised);
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0 3px,
+    rgba(255, 255, 255, 0.11) 3px 4px
+  );
+  box-shadow: 0 3px 8px -3px #000;
+  pointer-events: none;
 }
 
-.switch__track.is-on .switch__thumb {
-  transform: translateX(20px);
-  background: var(--color-bg);
-}
-
-/* --- Toggle row --- */
-
-.toggle-row {
-  display: flex;
-  flex-direction: column;
-}
-
-.toggle-row__item {
-  display: flex;
-  flex-direction: column;
-}
-
-.toggle-row__hint {
-  margin: 0 0 4px;
-  padding: 0 4px;
-  color: var(--color-text-muted);
-  font-size: 12px;
-}
-
-/* --- Track mixer --- */
-
-.track-mixer {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.track-mixer__row {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-}
-
-.track-mixer__part {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  cursor: pointer;
-}
-
-.track-mixer__part input[type='radio'] {
-  flex: none;
-  width: 20px;
-  height: 20px;
-  accent-color: var(--color-accent);
-}
-
-.track-mixer__name {
-  overflow: hidden;
-  flex: 1 1 auto;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: 14px;
-}
-
-.track-mixer__tag {
-  flex: none;
-  border: 1px solid var(--color-accent);
-  border-radius: 999px;
-  padding: 2px 8px;
-  color: var(--color-accent);
-  font-size: 11px;
-}
-
-.track-mixer__buttons {
-  display: flex;
-  gap: 8px;
-}
-
-.track-mixer__volume {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  color: var(--color-text-muted);
-  font-size: 12px;
-}
-
-.track-mixer__volume input[type='range'] {
+.speed-rail__input {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: 44px;
+  height: 100%;
   margin: 0;
-  accent-color: var(--color-accent);
-}
-
-.track-mixer__steppers {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-/* --- Stepper (shared by TrackMixer and DisplayControls) --- */
-
-.stepper {
-  display: flex;
-  flex: 1 1 45%;
-  min-width: 128px;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.stepper__label {
-  color: var(--color-text-muted);
-  font-size: 12px;
-}
-
-.stepper__controls {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.stepper__button {
   appearance: none;
-  flex: none;
-  width: 44px;
-  height: 44px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  font-size: 18px;
-  line-height: 1;
+  background: none;
   cursor: pointer;
 }
 
-.stepper__button:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
+.speed-rail__input::-webkit-slider-thumb {
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  background: transparent;
 }
 
-.stepper__button:focus-visible {
+.speed-rail__input::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+}
+
+.speed-rail__input:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+  border-radius: 6px;
 }
 
-.stepper__value {
-  min-width: 36px;
-  text-align: center;
+.speed-rail__scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--color-text-faint);
   font-variant-numeric: tabular-nums;
-  font-size: 14px;
 }
 
-/* --- Display controls --- */
+/* --- Sheet ---------------------------------------------------------------
+   Everything that is not a mid-practice control. Positioned out of the layout
+   flow, so opening it can never resize the score. */
 
-.display-controls {
+.sheet-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  border: none;
+  padding: 0;
+  background: rgba(6, 6, 8, 0.62);
+  animation: sheet-fade 0.18s ease-out;
+}
+
+.sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  max-height: 82%;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.display-controls__segmented {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.segmented__option {
-  appearance: none;
-  flex: 1 1 45%;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
+  padding: 10px 16px calc(24px + var(--safe-bottom));
+  border-top: 1px solid var(--color-border-strong);
+  border-radius: 22px 22px 0 0;
   background: var(--color-surface);
-  color: var(--color-text);
-  min-height: 44px;
-  padding: 8px 6px;
-  font: inherit;
+  box-shadow: 0 -24px 60px -20px rgba(0, 0, 0, 0.9);
+  animation: sheet-rise 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes sheet-rise {
+  from {
+    transform: translateY(14%);
+    opacity: 0.6;
+  }
+}
+
+@keyframes sheet-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.sheet__grip {
+  flex: none;
+  width: 36px;
+  height: 4px;
+  margin: 0 auto 14px;
+  border-radius: 2px;
+  background: var(--color-border-strong);
+}
+
+.sheet__tabs {
+  flex: none;
+  margin-bottom: 18px;
+}
+
+.sheet__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sheet__title {
+  margin: 0 0 2px;
+  font-size: 17px;
+  font-weight: 640;
+  letter-spacing: -0.01em;
+}
+
+.sheet__sub {
+  margin: 0 0 16px;
   font-size: 12px;
-  text-align: center;
-  cursor: pointer;
+  line-height: 1.45;
+  color: var(--color-text-muted);
 }
 
-.segmented__option.is-active {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-  background: var(--color-accent-muted);
+.sheet__field {
+  margin-bottom: 18px;
 }
 
-.segmented__option:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+.sheet__field > .legend {
+  margin-bottom: 8px;
 }
 
-/* Note correction editor. Shown only while a note is selected. */
-.note-editor {
+.sheet__field:last-child {
+  margin-bottom: 0;
+}
+
+.sheet__note {
+  margin: 8px 2px 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.sheet__pair {
+  display: flex;
+  gap: 10px;
+}
+
+.sheet__pair > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* --- Track list (sheet: Tracks) --- */
+
+.track-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.track-list__row {
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 12px;
-  background: var(--color-surface);
-  border-top: 1px solid var(--color-accent);
-  font-size: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
-.note-editor__row {
+.track-list__row.is-playing {
+  border-color: var(--color-accent-line);
+  background: var(--color-accent-muted);
+}
+
+.track-list__part {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
+  min-height: 44px;
+  cursor: pointer;
 }
+
+.track-list__part input[type='radio'] {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-accent);
+}
+
+.track-list__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 15px;
+}
+
+.track-list__buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.track-list__volume {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.track-list__volume input[type='range'] {
+  width: 100%;
+  height: 40px;
+  margin: 0;
+  accent-color: var(--color-accent);
+}
+
+.track-list__steppers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+/* --- Note editor (sheet: Note) --- */
 
 .note-editor__where {
   color: var(--color-accent);
   font-weight: 600;
 }
 
-.note-editor__label {
-  color: var(--color-text-muted);
-}
-
-.note-editor__stepper {
+.note-editor__actions {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  gap: 10px;
+  margin-top: 4px;
 }
 
-.note-editor__value {
-  min-width: 5ch;
-  text-align: center;
-  color: var(--color-text);
-  font-variant-numeric: tabular-nums;
-}
-
-.note-editor__save {
-  flex-wrap: wrap;
-}
-
-.note-editor__hint {
-  flex: 1 1 14ch;
-  color: var(--color-text-muted);
-  font-size: 12px;
+.note-editor__actions > * {
+  flex: 1 1 0;
 }

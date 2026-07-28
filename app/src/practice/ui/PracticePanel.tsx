@@ -1,7 +1,9 @@
 // Single entry point for the practice-intelligence UI (ADR-001). Composes the
-// due list, session builder and passage manager into one panel, following the
-// <details>/<summary> pattern from player/ui/PlayerControls.tsx. Owns which
-// review block (if any) is currently running.
+// due list, session builder and passage manager. Owns which review block (if
+// any) is currently running.
+//
+// Due work and the session builder are always visible: they are the reason to
+// open this tab. Passage housekeeping is not, so it stays folded away.
 
 import { useState } from 'preact/hooks'
 import type { JSX } from 'preact'
@@ -44,19 +46,17 @@ export function PracticePanel(): JSX.Element {
 
   return (
     <div class="practice-panel">
-      <details class="practice-panel__section" open>
-        <summary>Due now</summary>
-        <DueList onStartReview={startReview} />
-      </details>
+      <h2 class="h-sec">Due now</h2>
+      <DueList onStartReview={startReview} />
 
-      <details class="practice-panel__section">
-        <summary>Build a session</summary>
-        <SessionBuilder onStartReview={startReview} />
-      </details>
+      <h2 class="h-sec">Build a session</h2>
+      <SessionBuilder onStartReview={startReview} />
 
-      <details class="practice-panel__section">
-        <summary>Passages</summary>
-        <PassageManager />
+      <details class="practice-fold">
+        <summary class="practice-fold__summary">Trouble spots</summary>
+        <div class="practice-fold__body">
+          <PassageManager />
+        </div>
       </details>
     </div>
   )

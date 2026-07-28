@@ -1,33 +1,45 @@
 import type { PlayerStore } from '../core/PlayerStore'
-import { Switch } from './Switch'
 
 export function LoopControl({ store }: { store: PlayerStore }) {
   const loop = store.loop.value
-  const loopOn = loop !== null
-
-  function toggleLoop() {
-    store.setLoopEnabled(!loopOn)
-  }
 
   return (
-    <div class="loop-control">
-      <div class="loop-control__row">
-        <Switch label="Loop" on={loopOn} onToggle={toggleLoop} />
-        <span class="loop-control__readout">
-          {loop ? `Bars ${loop.startBar + 1} to ${loop.endBar + 1}` : 'No loop set'}
-        </span>
-      </div>
-      <div class="loop-control__actions">
-        <button type="button" class="btn" onClick={() => store.loopCurrentBar()}>
-          Loop current bar
-        </button>
-        <button type="button" class="btn" onClick={() => store.loopFromSelection()}>
-          Use selection
-        </button>
-      </div>
-      <p class="loop-control__hint">
-        Drag across the score to select bars, then use the selection.
+    <>
+      <h3 class="sheet__title">Loop</h3>
+      <p class="sheet__sub">
+        {loop
+          ? `Repeating bars ${loop.startBar + 1} to ${loop.endBar + 1}.`
+          : 'Nothing is looping. Pick a range to work on.'}
       </p>
-    </div>
+
+      <div class="sheet__field">
+        <button
+          type="button"
+          class="btn btn--block"
+          onClick={() => store.loopCurrentBar()}
+        >
+          Loop the current bar
+        </button>
+      </div>
+
+      <div class="sheet__field">
+        <button
+          type="button"
+          class="btn btn--block"
+          onClick={() => store.loopFromSelection()}
+        >
+          Loop the selected bars
+        </button>
+        <p class="sheet__note">Drag across the tab to select bars first.</p>
+      </div>
+
+      {loop && (
+        <div class="sheet__field">
+          <button type="button" class="btn btn--block" onClick={() => store.setLoop(null)}>
+            Stop looping
+          </button>
+        </div>
+      )}
+    </>
   )
 }

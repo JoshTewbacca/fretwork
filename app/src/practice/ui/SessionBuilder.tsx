@@ -15,43 +15,52 @@ export function SessionBuilder({ onStartReview }: SessionBuilderProps) {
   const [minutes, setMinutes] = useState(20)
   const [plan, setPlan] = useState<SessionPlan | null>(null)
 
-  function build() {
-    setPlan(practiceStore.planSession(minutes))
-  }
-
   return (
     <div class="session-builder">
-      <div class="session-builder__minutes">
+      <div class="seg" role="group" aria-label="Session length">
         {MINUTE_OPTIONS.map((m) => (
           <button
             key={m}
             type="button"
-            class={`session-builder__preset${minutes === m ? ' is-active' : ''}`}
-            onClick={() => setMinutes(m)}
+            class={minutes === m ? 'seg__opt is-active' : 'seg__opt'}
+            aria-pressed={minutes === m}
+            onClick={() => {
+              setMinutes(m)
+              setPlan(null)
+            }}
           >
             {m} min
           </button>
         ))}
       </div>
 
-      <p class="session-builder__hint">Favours the most overdue passages.</p>
-
-      <button type="button" class="btn session-builder__build" onClick={build}>
-        Build session
+      <button
+        type="button"
+        class="btn btn--primary btn--block"
+        onClick={() => setPlan(practiceStore.planSession(minutes))}
+      >
+        Build a {minutes} minute session
       </button>
+
+      <p class="session-builder__hint">Favours the most overdue passages.</p>
 
       {plan && (
         <div class="session-builder__plan">
           <ol class="session-builder__items">
             {plan.items.map((item, index) => (
-              <li class="session-builder__item" key={`${item.kind}-${item.passageId ?? item.songId}-${index}`}>
+              <li
+                class="session-builder__item"
+                key={`${item.kind}-${item.passageId ?? item.songId}-${index}`}
+              >
                 <span class="session-builder__item-label">{item.label}</span>
                 <span class="session-builder__item-minutes">{item.estimatedMinutes} min</span>
                 {item.kind === 'review' && item.passageId && (
                   <button
                     type="button"
                     class="btn btn--small session-builder__item-start"
-                    onClick={() => onStartReview(item.passageId as string, item.tempoPct, item.label)}
+                    onClick={() =>
+                      onStartReview(item.passageId as string, item.tempoPct, item.label)
+                    }
                   >
                     Start
                   </button>

@@ -2,15 +2,16 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 10px 16px;
   background: var(--color-surface);
-  border-bottom: 1px solid var(--color-accent);
+  border-bottom: 1px solid var(--color-accent-line);
   color: var(--color-text);
   font-size: 13px;
+  line-height: 1.45;
 }
 
 .storage-banner--critical {
-  border-bottom-color: #e06c60;
+  border-bottom-color: var(--color-danger);
 }
 
 .storage-banner__text {
@@ -21,12 +22,12 @@
 .storage-banner__dismiss {
   flex: none;
   appearance: none;
+  min-height: 36px;
+  padding: 0 12px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: none;
   color: var(--color-text-muted);
-  min-height: 32px;
-  padding: 4px 12px;
   font: inherit;
   font-size: 12px;
   cursor: pointer;

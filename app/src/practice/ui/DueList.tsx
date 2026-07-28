@@ -26,20 +26,22 @@ export function DueList({ onStartReview }: DueListProps) {
       {rows.map(({ passage, state }) => {
         const label = passageLabel(passage)
         return (
-          <li class="due-list__row" key={passage.id}>
-            <div class="due-list__info">
-              <span class="due-list__label">{label}</span>
-              <span class="due-list__meta">
-                {phaseLabel(state.phase)} - {state.reviewTempoPct}%
-              </span>
+          <li class="card" key={passage.id}>
+            <div class="card__top">
+              <div class="card__text">
+                <div class="card__title">{label}</div>
+                <div class="card__sub">
+                  {phaseLabel(state.phase)} · {state.reviewTempoPct}% tempo
+                </div>
+              </div>
+              <button
+                type="button"
+                class="btn btn--small"
+                onClick={() => onStartReview(passage.id, state.reviewTempoPct, label)}
+              >
+                Start
+              </button>
             </div>
-            <button
-              type="button"
-              class="btn due-list__start"
-              onClick={() => onStartReview(passage.id, state.reviewTempoPct, label)}
-            >
-              Start
-            </button>
           </li>
         )
       })}

@@ -1,91 +1,57 @@
-/* Practice-intelligence UI (ADR-001): mobile-first, self-contained. Uses only
-   the app's existing custom properties (see src/index.css) and follows the
-   visual conventions of player/ui/controls.css so it can sit anywhere in the
-   shell. Fits a 390px viewport with no horizontal overflow; interactive
-   targets are at least 44x44px, 56px for the review buttons the user presses
-   with a guitar in hand. */
+/* Practice-intelligence UI (ADR-001): mobile-first, self-contained. Uses the
+   tokens and primitives from src/index.css. Fits a 390px viewport with no
+   horizontal overflow; interactive targets are at least 44px, 56px for the
+   review buttons the user presses with a guitar in hand. */
+
+.practice-screen__stats {
+  margin-top: 14px;
+}
 
 .practice-panel {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  box-sizing: border-box;
-  max-width: 100%;
-  padding: 10px 12px;
-  background: var(--color-surface);
-  font-size: 14px;
 }
 
 .practice-panel * {
-  box-sizing: border-box;
   min-width: 0;
 }
 
-.practice-panel__section {
+/* Housekeeping that is not why you opened the tab. */
+.practice-fold {
+  margin-top: 22px;
   border-top: 1px solid var(--color-border);
-  padding-top: 4px;
 }
 
-.practice-panel__section summary {
+.practice-fold__summary {
   display: flex;
   align-items: center;
-  min-height: 40px;
-  padding: 6px 4px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
+  min-height: 48px;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
   cursor: pointer;
   list-style: none;
 }
 
-.practice-panel__section summary::-webkit-details-marker {
+.practice-fold__summary::-webkit-details-marker {
   display: none;
 }
 
-.practice-panel__section summary::after {
+.practice-fold__summary::after {
   content: '+';
   margin-left: auto;
-  font-size: 18px;
-  color: var(--color-text-muted);
+  font-size: 17px;
+  letter-spacing: 0;
 }
 
-.practice-panel__section[open] summary::after {
+.practice-fold[open] .practice-fold__summary::after {
   content: '\2212';
 }
 
-.practice-panel__section > :not(summary) {
-  padding: 4px 4px 12px;
-}
-
-/* Generic small button, matches player/ui/controls.css's .btn. */
-.btn {
-  appearance: none;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  min-width: 44px;
-  min-height: 44px;
-  padding: 8px 14px;
-  font: inherit;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
-}
-
-.btn:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-.btn--small {
-  padding: 6px 10px;
-  font-size: 13px;
-  min-height: 44px;
+.practice-fold__body {
+  padding-bottom: 12px;
 }
 
 /* --- Due list --- */
@@ -93,7 +59,7 @@
 .due-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -101,41 +67,12 @@
 
 .due-list__empty {
   margin: 0;
-  color: var(--color-text-muted);
-  font-size: 14px;
-}
-
-.due-list__row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px;
+  padding: 14px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
-}
-
-.due-list__info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.due-list__label {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: 14px;
-}
-
-.due-list__meta {
+  border-radius: var(--radius-lg);
   color: var(--color-text-muted);
-  font-size: 12px;
-}
-
-.due-list__start {
-  flex: none;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 /* --- Session builder --- */
@@ -144,36 +81,6 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.session-builder__minutes {
-  display: flex;
-  gap: 8px;
-}
-
-.session-builder__preset {
-  appearance: none;
-  flex: 1 1 0;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  min-height: 44px;
-  padding: 6px 4px;
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.session-builder__preset.is-active {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-  background: var(--color-accent-muted);
-}
-
-.session-builder__preset:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
 }
 
 .session-builder__hint {
@@ -186,12 +93,13 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-top: 4px;
 }
 
 .session-builder__items {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -200,18 +108,18 @@
 .session-builder__item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px;
+  gap: 10px;
+  padding: 10px 12px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius);
 }
 
 .session-builder__item-label {
-  overflow: hidden;
   flex: 1 1 auto;
+  overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .session-builder__item-minutes {
@@ -227,8 +135,8 @@
 
 .session-builder__total {
   margin: 0;
-  color: var(--color-text);
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 
 .session-builder__deferred {
@@ -237,79 +145,19 @@
   font-size: 12px;
 }
 
-/* --- Mark passage --- */
-
-.mark-passage {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.mark-passage__bars {
-  display: flex;
-  gap: 10px;
-}
-
-.mark-passage__field {
-  display: flex;
-  flex: 1 1 0;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.mark-passage__field--label {
-  flex: 1 1 100%;
-}
-
-.mark-passage__field-label {
-  color: var(--color-text-muted);
-  font-size: 12px;
-}
-
-.mark-passage__input {
-  width: 100%;
-  min-height: 44px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-bg);
-  color: var(--color-text);
-  padding: 6px 10px;
-  font: inherit;
-  font-size: 14px;
-}
-
-.mark-passage__input:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-.mark-passage__input--text {
-  width: 100%;
-}
-
-.mark-passage__submit {
-  align-self: flex-start;
-}
-
-.mark-passage__confirmation {
-  margin: 0;
-  color: var(--color-accent);
-  font-size: 13px;
-}
-
 /* --- Passage manager --- */
 
 .passage-manager {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .passage-manager__rebuild {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-bottom: 10px;
+  gap: 8px;
+  padding-bottom: 14px;
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -317,6 +165,7 @@
   margin: 0;
   color: var(--color-text-muted);
   font-size: 12px;
+  line-height: 1.45;
 }
 
 .passage-manager__empty {
@@ -333,11 +182,11 @@
 
 .passage-manager__song {
   margin: 0;
-  color: var(--color-text-muted);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  color: var(--color-text-faint);
 }
 
 .passage-manager__row {
@@ -345,9 +194,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 10px;
+  padding: 12px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius);
 }
 
 .passage-manager__info {
@@ -373,26 +222,29 @@
   flex: none;
 }
 
-/* --- Review block --- */
+/* --- Review block ---------------------------------------------------------
+   The one screen used mid-playing, so the two verdict buttons are oversized
+   and unambiguous: amber for the clean run, neutral for not yet. */
 
 .review-block {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 4px;
+  gap: 14px;
+  padding: 4px 0;
 }
 
 .review-block__label {
   margin: 0;
-  color: var(--color-text);
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 19px;
+  font-weight: 640;
+  letter-spacing: -0.015em;
 }
 
 .review-block__tempo {
   margin: 0;
   color: var(--color-text-muted);
   font-size: 14px;
+  font-variant-numeric: tabular-nums;
 }
 
 .review-block__buttons {
@@ -406,21 +258,21 @@
   flex: 1 1 0;
   border: 1px solid var(--color-border);
   border-radius: 12px;
-  min-height: 56px;
+  min-height: 60px;
   font: inherit;
   font-size: 17px;
-  font-weight: 600;
+  font-weight: 620;
   cursor: pointer;
 }
 
 .review-block__clean {
   border-color: var(--color-accent);
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-paper);
 }
 
 .review-block__notyet {
-  background: var(--color-surface);
+  background: var(--color-surface-raised);
   color: var(--color-text);
 }
 
@@ -437,25 +289,23 @@
   font-variant-numeric: tabular-nums;
 }
 
-.review-block__finish {
+.review-block__finish,
+.review-block__continue {
   min-height: 56px;
   font-size: 16px;
 }
 
 .review-block__result-word {
   margin: 0;
-  color: var(--color-accent);
-  font-size: 22px;
-  font-weight: 700;
+  color: var(--color-progress);
+  font-size: 26px;
+  font-weight: 680;
+  letter-spacing: -0.02em;
 }
 
 .review-block__result-explanation {
   margin: 0;
   color: var(--color-text-muted);
   font-size: 14px;
-}
-
-.review-block__continue {
-  min-height: 56px;
-  font-size: 16px;
+  line-height: 1.5;
 }

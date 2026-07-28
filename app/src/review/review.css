@@ -9,7 +9,7 @@
 
 .review-queue__error {
   margin: 0 0 8px;
-  color: #e06c60;
+  color: var(--color-danger);
   font-size: 13px;
 }
 
@@ -21,7 +21,7 @@
 
 .review-queue__song {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 10px 12px;
   background: var(--color-surface);
 }

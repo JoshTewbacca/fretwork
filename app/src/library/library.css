@@ -1,45 +1,18 @@
-/* Library screen styles. Mobile-first, fits a 390px viewport. Uses only the
-   custom properties defined in src/index.css. */
+/* Library screen. Mobile-first, fits a 390px viewport. Uses only the tokens
+   and primitives from src/index.css. */
 
 .library-screen {
+  gap: 14px;
+}
+
+.library-header {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-height: 100%;
-  padding: 16px 16px calc(16px + var(--safe-bottom));
-  box-sizing: border-box;
+  align-items: center;
+  gap: 12px;
 }
 
-.library-segmented {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  background: var(--color-surface);
-}
-
-.library-segmented__tab {
-  appearance: none;
-  flex: 1 1 0;
-  min-height: 36px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--color-text-muted);
-  font: inherit;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.library-segmented__tab.is-active {
-  background: var(--color-accent-muted);
-  color: var(--color-accent);
-}
-
-.library-segmented__tab:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+.library-header .screen-title {
+  flex: 1 1 auto;
 }
 
 .library-controls {
@@ -48,73 +21,19 @@
   gap: 10px;
 }
 
-.library-search {
-  appearance: none;
-  width: 100%;
-  min-height: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  font-size: 15px;
-  box-sizing: border-box;
-}
-
-.library-search::placeholder {
-  color: var(--color-text-muted);
-}
-
 .library-controls__row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .library-sort {
   flex: 1 1 auto;
   min-width: 0;
-  min-height: 44px;
-  padding: 0 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  font: inherit;
-  font-size: 14px;
 }
 
-.library-favourites-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  white-space: nowrap;
-}
-
-.library-favourites-toggle input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--color-accent);
-}
-
-.library-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  min-height: 40vh;
-  text-align: center;
-  color: var(--color-text-muted);
-}
-
-.library-empty-state p {
-  margin: 0;
-  max-width: 32ch;
+.library-favourites {
+  flex: none;
 }
 
 .library-list {
@@ -123,168 +42,94 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--color-border);
-}
-
-.library-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 4px 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.library-row__top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-}
-
-.library-row__footer {
-  display: flex;
-  justify-content: flex-end;
-  padding: 0 4px 4px;
-}
-
-.library-row__footer:empty {
-  display: none;
-}
-
-.library-row__main {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  align-items: center;
   gap: 10px;
-  min-height: 44px;
-  padding: 8px 4px;
+}
+
+.library-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.library-card__main {
+  display: block;
+  padding: 14px;
   cursor: pointer;
 }
 
-.library-row__main:focus-visible {
+.library-card__main:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: -2px;
 }
 
-.library-row__text {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.library-row__title {
-  color: var(--color-text);
-  font-size: 15px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.library-row__artist {
-  color: var(--color-text-muted);
-  font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.library-row__last-played {
-  color: var(--color-text-muted);
-  font-size: 11px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.library-row__badge {
-  flex: 0 0 auto;
-  padding: 2px 6px;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  color: var(--color-text-muted);
-  font-size: 10px;
-  letter-spacing: 0.04em;
-}
-
-.library-row__actions {
-  flex: 0 0 auto;
+.library-card__actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  padding: 0 14px 8px;
 }
 
-.library-row__favourite,
-.library-row__remove {
-  appearance: none;
-  min-height: 36px;
-  padding: 0 10px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
+.library-card__actions--setlist {
+  padding-bottom: 12px;
+}
+
+.library-card__actions:empty {
+  display: none;
+}
+
+.library-card__remove {
+  margin-left: auto;
   color: var(--color-text-muted);
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
 }
 
-.library-row__favourite:focus-visible,
-.library-row__remove:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+.library-card__actions--setlist .add-to-setlist {
+  flex: 1 1 auto;
 }
 
-.library-row__favourite.is-active {
-  border-color: var(--color-accent);
-  background: var(--color-accent-muted);
-  color: var(--color-accent);
-}
-
-/* Compact "add to setlist" control embedded in a library row footer. */
+/* Compact "add to setlist" control embedded in a card's action row. */
 .add-to-setlist {
   display: flex;
   align-items: center;
   gap: 6px;
-  max-width: 100%;
+  min-width: 0;
 }
 
 .add-to-setlist__select {
   flex: 1 1 auto;
   min-width: 0;
-  min-height: 32px;
-  padding: 0 6px;
+  min-height: 40px;
+  padding: 0 8px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
   color: var(--color-text);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .add-to-setlist__button {
   appearance: none;
-  flex: 0 0 auto;
-  min-height: 32px;
-  padding: 0 10px;
+  flex: none;
+  min-height: 40px;
+  padding: 0 12px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
   color: var(--color-text);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
 }
 
 .add-to-setlist__button:disabled {
-  color: var(--color-text-muted);
+  color: var(--color-text-faint);
   cursor: not-allowed;
 }
 
 .add-to-setlist__confirmation {
-  flex: 0 0 auto;
-  color: var(--color-accent);
+  flex: none;
+  color: var(--color-progress);
   font-size: 11px;
   white-space: nowrap;
 }

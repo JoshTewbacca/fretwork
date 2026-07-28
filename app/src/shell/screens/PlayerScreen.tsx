@@ -2,9 +2,11 @@ import { useEffect, useRef } from 'preact/hooks'
 import { useSignal } from '@preact/signals'
 import { createPlayerStore, type PlayerStore } from '../../player/core/PlayerStore'
 import { installAudioSessionHandling } from '../../player/core/audioSession'
-import { PlayerControls } from '../../player/ui/PlayerControls'
-import { NoteEditor } from '../../player/ui/NoteEditor'
-import { MarkPassage } from '../../practice/ui/MarkPassage'
+import { PlayerDock } from '../../player/ui/PlayerDock'
+import { BarRail } from '../../player/ui/BarRail'
+import { PlayerSheet, type SheetPanel } from '../../player/ui/PlayerSheet'
+import { practiceStore } from '../../practice/practiceStore'
+import { prefs, prefsLoaded, loadPrefs } from '../../settings/prefs'
 import { importTabFile } from '../../import/importFile'
 import { ACCEPT_ATTRIBUTE } from '../../import/format'
 import { requestedSongId, clearRequestedSong } from '../../library/openSong'
@@ -12,6 +14,7 @@ import { getDb } from '../../db/open'
 import { getSong, putSong } from '../../db/songs'
 import { getBlob, putBlob } from '../../db/blobs'
 import { reportMissingAsset } from '../../offline/integrity'
+import '../../player/ui/controls.css'
 import './screens.css'
 
 const SOUND_FONT_URL = '/soundfont/sonivox.sf3'
@@ -23,6 +26,7 @@ export function PlayerScreen() {
   const storeVersion = useSignal(0)
   const status = useSignal<string | null>(null)
   const saving = useSignal(false)
+  const sheetPanel = useSignal<SheetPanel | null>(null)
   // Library metadata for the loaded song. Many files embed no title of their
   // own, so the library's title is the better label when the score has none.
   const currentSong = useSignal<{ id: string; title: string; artist: string } | null>(null)
@@ -30,7 +34,15 @@ export function PlayerScreen() {
   function ensureStore(): PlayerStore {
     let store = storeRef.current
     if (!store) {
-      store = createPlayerStore(mountRef.current!, { soundFontUrl: SOUND_FONT_URL })
+      const { showNotation, showAllTracks, defaultZoomPct } = prefs.value
+      store = createPlayerStore(mountRef.current!, {
+        soundFontUrl: SOUND_FONT_URL,
+        // Notation is opt-in: tab only unless the stored preference says
+        // otherwise. See src/settings/prefs.ts.
+        staveProfile: showNotation ? 'scoreTab' : 'tab',
+        showAllTracks,
+        zoomPct: defaultZoomPct,
+      })
       installAudioSessionHandling(store)
       storeRef.current = store
       if (import.meta.env.DEV) {
@@ -42,6 +54,8 @@ export function PlayerScreen() {
   }
 
   useEffect(() => {
+    void loadPrefs()
+    void practiceStore.refresh()
     if (import.meta.env.DEV) {
       ;(window as unknown as { __loadDemo?: () => void }).__loadDemo = () => {
         ensureStore().api.tex(
@@ -56,6 +70,26 @@ export function PlayerScreen() {
       storeRef.current = null
     }
   }, [])
+
+  // Preferences arrive asynchronously and can change while a score is open, so
+  // re-apply them rather than relying on the values held at construction.
+  const { showNotation, showAllTracks } = prefs.value
+  const loadedPrefs = prefsLoaded.value
+  useEffect(() => {
+    if (!loadedPrefs) return
+    const store = storeRef.current
+    if (!store) return
+    store.setNotationVisible(showNotation)
+    store.setShowAllTracks(showAllTracks)
+  }, [loadedPrefs, showNotation, showAllTracks])
+
+  // Tapping a note in the score is a request to correct it, so surface the
+  // editor without the user having to find it.
+  const selectedNote = storeRef.current?.selectedNote.value ?? null
+  useEffect(() => {
+    if (selectedNote) sheetPanel.value = 'note'
+    else if (sheetPanel.value === 'note') sheetPanel.value = null
+  }, [selectedNote])
 
   // Opening a song from the Library sets this signal; load it and clear it so
   // returning to the player later does not reload the same score.
@@ -155,26 +189,43 @@ export function PlayerScreen() {
   const store = storeRef.current
   const loaded = store?.scoreLoaded.value ?? false
   const err = store?.error.value ?? null
+  const song = currentSong.value
+  const panel = sheetPanel.value
+
+  // Only this song's marks belong on the rail.
+  const passages =
+    loaded && song
+      ? practiceStore.passages.value.filter(
+          (p) => p.songId === song.id && p.status === 'active',
+        )
+      : []
 
   return (
     <div class="player-screen">
-      <header class="player-header">
-        <div class="player-header__meta">
+      <header class="player-bar">
+        <div class="player-bar__meta">
           {loaded && store ? (
             <>
-              <span class="player-header__title">
-                {store.scoreTitle.value || currentSong.value?.title || 'Untitled'}
-              </span>
-              <span class="player-header__artist">
-                {store.scoreArtist.value || currentSong.value?.artist || ''}
-              </span>
+              <div class="player-bar__title">
+                {store.scoreTitle.value || song?.title || 'Untitled'}
+              </div>
+              <div class="player-bar__sub">
+                {[store.scoreArtist.value || song?.artist, currentPartName(store)]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </div>
             </>
           ) : (
-            <span class="player-header__title">No tab loaded</span>
+            <div class="player-bar__title">No tab loaded</div>
           )}
         </div>
-        <button type="button" class="btn" onClick={() => fileRef.current?.click()}>
-          Import
+        <button
+          type="button"
+          class="player-bar__action"
+          aria-label="Import a tab file"
+          onClick={() => fileRef.current?.click()}
+        >
+          <ImportGlyph />
         </button>
       </header>
 
@@ -183,6 +234,8 @@ export function PlayerScreen() {
           {err ?? status.value}
         </p>
       )}
+
+      {loaded && store && <BarRail store={store} passages={passages} />}
 
       {!loaded && (
         <div class="screen-placeholder">
@@ -193,23 +246,23 @@ export function PlayerScreen() {
         </div>
       )}
 
+      <div class="score-area" ref={mountRef} />
+
       {loaded && store && (
-        <>
-          <PlayerControls store={store} />
-          <NoteEditor store={store} onSave={saveCorrections} saving={saving.value} />
-          {/* Trouble spots get marked while playing, so this lives here rather
-              than in the practice tab. */}
-          {currentSong.value && (
-            <MarkPassage
-              songId={currentSong.value.id}
-              trackIndex={store.playerTrackIndex.value}
-              currentBar={store.currentBarIndex.value}
-            />
-          )}
-        </>
+        <PlayerDock store={store} onOpenSheet={() => (sheetPanel.value = 'view')} />
       )}
 
-      <div class="score-area" ref={mountRef} />
+      {loaded && store && panel && (
+        <PlayerSheet
+          store={store}
+          panel={panel}
+          onPanelChange={(next) => (sheetPanel.value = next)}
+          onClose={() => (sheetPanel.value = null)}
+          songId={song?.id ?? null}
+          onSaveCorrections={saveCorrections}
+          savingCorrections={saving.value}
+        />
+      )}
 
       <input
         ref={fileRef}
@@ -219,5 +272,32 @@ export function PlayerScreen() {
         onChange={onFileChosen}
       />
     </div>
+  )
+}
+
+/** The part being played, shown in the subtitle so the tab on screen is never
+ *  ambiguous when a score has several tracks. */
+function currentPartName(store: PlayerStore): string {
+  const track = store.tracks.value.find((t) => t.index === store.playerTrackIndex.value)
+  return track?.name ?? ''
+}
+
+function ImportGlyph() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden
+    >
+      <path d="M12 4v11" />
+      <path d="M8.2 11.2 12 15l3.8-3.8" />
+      <path d="M4.5 17.5v1a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-1" />
+    </svg>
   )
 }

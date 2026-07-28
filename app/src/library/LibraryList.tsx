@@ -1,12 +1,22 @@
 // Presentational song list: no store access (aside from the setlist picker),
-// only props. Rows are tappable to open; favourite and remove are separate
-// controls so they don't fight the row's own tap target.
+// only props. Cards are tappable to open; favourite and remove are separate
+// controls so they don't fight the card's own tap target.
 
 import type { Song } from '../core/types.ts'
 import { AddToSetlist } from '../setlists/AddToSetlist.tsx'
 
+/** Practice standing for one song, summarised for the list. */
+export interface SongPractice {
+  /** Active trouble spots marked against this song. */
+  spots: number
+  /** 0..1 share of those spots that have reached the maintenance phase. */
+  solid: number
+}
+
 interface LibraryListProps {
   songs: Song[]
+  /** Keyed by song id; songs with no marked passages are simply absent. */
+  practice?: Map<string, SongPractice>
   onOpen: (id: string) => void
   onToggleFavourite: (id: string) => void
   onRemove: (id: string) => void
@@ -46,46 +56,68 @@ export function formatRelativeTime(ts?: number, now: number = Date.now()): strin
   return `${years} ${years === 1 ? 'year' : 'years'} ago`
 }
 
-export function LibraryList({ songs, onOpen, onToggleFavourite, onRemove }: LibraryListProps) {
+export function LibraryList({
+  songs,
+  practice,
+  onOpen,
+  onToggleFavourite,
+  onRemove,
+}: LibraryListProps) {
   return (
     <ul class="library-list">
-      {songs.map((song) => (
-        <li key={song.id} class="library-row">
-          <div class="library-row__top">
+      {songs.map((song) => {
+        const standing = practice?.get(song.id)
+        return (
+          <li key={song.id} class="library-card">
             <div
-              class="library-row__main"
+              class="library-card__main"
               role="button"
               tabIndex={0}
               onClick={() => onOpen(song.id)}
               onKeyDown={openOnKey(() => onOpen(song.id))}
             >
-              <div class="library-row__text">
-                <span class="library-row__title">{song.title}</span>
-                <span class="library-row__artist">{song.artist}</span>
-                <span class="library-row__last-played">
-                  Last played: {formatRelativeTime(song.lastPlayedAt)}
-                </span>
+              <div class="card__top">
+                <div class="card__text">
+                  <div class="card__title">{song.title}</div>
+                  <div class="card__sub">
+                    {song.artist} · {formatRelativeTime(song.lastPlayedAt)}
+                  </div>
+                </div>
+                {standing ? (
+                  <span class="tag tag--teal">
+                    {standing.spots} {standing.spots === 1 ? 'spot' : 'spots'}
+                  </span>
+                ) : (
+                  <span class="tag">{song.tabFormat.toUpperCase()}</span>
+                )}
               </div>
-              <span class="library-row__badge">{song.tabFormat.toUpperCase()}</span>
+
+              {/* How much of what you flagged in this song is now solid. Only
+                  meaningful once something has been marked. */}
+              {standing && (
+                <div class="meter">
+                  <span
+                    class="meter__fill"
+                    style={{ width: `${Math.round(standing.solid * 100)}%` }}
+                  />
+                </div>
+              )}
             </div>
 
-            <div class="library-row__actions">
+            {/* Two rows: the setlist picker needs the full width to itself,
+                and three controls plus a select do not fit at 390px. */}
+            <div class="library-card__actions">
               <button
                 type="button"
-                class={
-                  song.favourite
-                    ? 'library-row__favourite is-active'
-                    : 'library-row__favourite'
-                }
+                class={song.favourite ? 'btn btn--small is-active' : 'btn btn--small'}
                 aria-pressed={song.favourite}
-                aria-label="Favourite"
                 onClick={() => onToggleFavourite(song.id)}
               >
-                Favourite
+                {song.favourite ? 'Favourited' : 'Favourite'}
               </button>
               <button
                 type="button"
-                class="library-row__remove"
+                class="btn btn--small library-card__remove"
                 onClick={() => {
                   if (window.confirm(`Remove "${song.title}" from your library?`)) {
                     onRemove(song.id)
@@ -95,13 +127,12 @@ export function LibraryList({ songs, onOpen, onToggleFavourite, onRemove }: Libr
                 Remove
               </button>
             </div>
-          </div>
-
-          <div class="library-row__footer">
-            <AddToSetlist songId={song.id} />
-          </div>
-        </li>
-      ))}
+            <div class="library-card__actions library-card__actions--setlist">
+              <AddToSetlist songId={song.id} />
+            </div>
+          </li>
+        )
+      })}
     </ul>
   )
 }

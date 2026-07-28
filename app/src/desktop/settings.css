@@ -1,44 +1,44 @@
 .settings-section {
-  margin-bottom: 28px;
-}
-
-.settings-section__title {
-  margin: 0 0 4px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  margin-bottom: 26px;
 }
 
 .settings-section__hint {
   margin: 0 0 12px;
   font-size: 13px;
+  line-height: 1.5;
   color: var(--color-text-muted);
 }
 
 .settings-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   margin-bottom: 12px;
 }
 
 .settings-field__label {
-  font-size: 13px;
-  color: var(--color-text);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
 }
 
 .settings-field__input {
   appearance: none;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 13px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
+  border-radius: var(--radius);
+  background: var(--color-bg);
   color: var(--color-text);
-  min-height: 44px;
-  padding: 8px 12px;
   font: inherit;
-  font-size: 14px;
+  font-size: 15px;
+}
+
+.settings-field__input::placeholder {
+  color: var(--color-text-faint);
 }
 
 .settings-field__input:focus-visible {
@@ -49,7 +49,8 @@
 .settings-field__warning {
   margin: 2px 0 0;
   font-size: 12px;
-  color: #e06c60;
+  line-height: 1.45;
+  color: var(--color-danger);
 }
 
 .settings-actions {
@@ -57,38 +58,20 @@
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .settings-actions__result {
+  flex: 1 1 100%;
   font-size: 13px;
+  line-height: 1.45;
   color: var(--color-text-muted);
 }
 
 .settings-actions__result--ok {
-  color: var(--color-accent);
+  color: var(--color-progress);
 }
 
 .settings-actions__result--error {
-  color: #e06c60;
-}
-
-.settings-storage {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--color-text-muted);
-}
-
-.settings-storage__bar {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--color-border);
-  overflow: hidden;
-}
-
-.settings-storage__bar-fill {
-  height: 100%;
-  background: var(--color-accent);
+  color: var(--color-danger);
 }

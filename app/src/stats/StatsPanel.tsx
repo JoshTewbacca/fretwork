@@ -46,7 +46,6 @@ export function StatsPanel(): JSX.Element {
   }, [])
 
   const totalMs = statsStore.totalMs.value
-  const currentStreak = statsStore.currentStreak.value
   const longestStreak = statsStore.longestStreak.value
   const msByDay = statsStore.msByDay.value
   const msBySong = statsStore.msBySong.value
@@ -60,18 +59,16 @@ export function StatsPanel(): JSX.Element {
 
   return (
     <div class="stats-panel">
-      <div class="stats-summary">
-        <div class="stats-summary__item">
-          <div class="stats-summary__value">{formatHoursMinutes(totalMs)}</div>
-          <div class="stats-summary__label">Total practice</div>
+      {/* The current streak is shown by the screen above this panel, so it is
+          not repeated here. */}
+      <div class="stat">
+        <div class="stat__item">
+          <span class="stat__value">{formatHoursMinutes(totalMs)}</span>
+          <span class="stat__label">Total practice</span>
         </div>
-        <div class="stats-summary__item">
-          <div class="stats-summary__value">{currentStreak}</div>
-          <div class="stats-summary__label">Day streak</div>
-        </div>
-        <div class="stats-summary__item">
-          <div class="stats-summary__value">{longestStreak}</div>
-          <div class="stats-summary__label">Longest streak</div>
+        <div class="stat__item">
+          <span class="stat__value">{longestStreak}</span>
+          <span class="stat__label">Longest streak</span>
         </div>
       </div>
 
@@ -85,7 +82,7 @@ export function StatsPanel(): JSX.Element {
       </div>
 
       <div class="stats-section">
-        <h2 class="stats-section__title">By song</h2>
+        <h2 class="h-sec">By song</h2>
         {topSongs.length === 0 ? (
           <p class="stats-empty">No practice recorded yet.</p>
         ) : (
@@ -101,7 +98,7 @@ export function StatsPanel(): JSX.Element {
       </div>
 
       <div class="stats-section">
-        <h2 class="stats-section__title">Review outcomes</h2>
+        <h2 class="h-sec">Review outcomes</h2>
         <ul class="stats-outcomes">
           {(['easy', 'good', 'hard', 'fail'] as const).map((grade) => (
             <li key={grade} class="stats-outcomes__row">
