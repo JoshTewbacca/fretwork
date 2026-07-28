@@ -2,13 +2,10 @@
 // (ADR-001 session builder uses the same weighting).
 
 import { practiceStore } from '../practiceStore'
+import { startReview } from '../activeReview'
 import { dueRows, passageLabel, phaseLabel } from './helpers'
 
-export interface DueListProps {
-  onStartReview: (passageId: string, tempoPct: number, label: string) => void
-}
-
-export function DueList({ onStartReview }: DueListProps) {
+export function DueList() {
   const passages = practiceStore.passages.value
   const states = practiceStore.states.value
   const rows = dueRows(passages, states, Date.now())
@@ -37,7 +34,7 @@ export function DueList({ onStartReview }: DueListProps) {
               <button
                 type="button"
                 class="btn btn--small"
-                onClick={() => onStartReview(passage.id, state.reviewTempoPct, label)}
+                onClick={() => startReview(passage, state.reviewTempoPct, label)}
               >
                 Start
               </button>

@@ -5,7 +5,11 @@ import { installAudioSessionHandling } from '../../player/core/audioSession'
 import { PlayerDock } from '../../player/ui/PlayerDock'
 import { BarRail } from '../../player/ui/BarRail'
 import { PlayerSheet, type SheetPanel } from '../../player/ui/PlayerSheet'
+import { attachPinchZoom } from '../../player/ui/pinchZoom'
 import { practiceStore } from '../../practice/practiceStore'
+import { activeReview, endReview } from '../../practice/activeReview'
+import { ReviewBlock } from '../../practice/ui/ReviewBlock'
+import { navigate } from '../router'
 import { prefs, prefsLoaded, loadPrefs } from '../../settings/prefs'
 import { importTabFile } from '../../import/importFile'
 import { ACCEPT_ATTRIBUTE } from '../../import/format'
@@ -53,6 +57,17 @@ export function PlayerScreen() {
     return store
   }
 
+  // Pinch the score to zoom. Attached to the mount element for the lifetime of
+  // the screen; it reads the store lazily so it works from the first score on.
+  useEffect(() => {
+    const element = mountRef.current
+    if (!element) return
+    return attachPinchZoom(element, {
+      getZoomPct: () => storeRef.current?.zoomPct.value ?? 0,
+      setZoomPct: (pct) => storeRef.current?.setZoomPct(pct),
+    })
+  }, [])
+
   useEffect(() => {
     void loadPrefs()
     void practiceStore.refresh()
@@ -82,6 +97,24 @@ export function PlayerScreen() {
     store.setNotationVisible(showNotation)
     store.setShowAllTracks(showAllTracks)
   }, [loadedPrefs, showNotation, showAllTracks])
+
+  // A review runs here rather than in the practice tab: put the player into
+  // the state the scheduler asked for once the score is up. Keyed on
+  // scoreLoaded too, because loading a score clears the loop.
+  // playerReady is in the dependencies as well as scoreLoaded because setting a
+  // loop needs alphaTab's tick cache, which is only populated once the MIDI has
+  // been generated. Keyed on scoreLoaded alone the loop silently fails to take.
+  const review = activeReview.value
+  const scoreIsLoaded = storeRef.current?.scoreLoaded.value ?? false
+  const playerIsReady = storeRef.current?.playerReady.value ?? false
+  useEffect(() => {
+    const store = storeRef.current
+    if (!store || !review || !scoreIsLoaded) return
+    store.setPlayerTrack(review.trackIndex)
+    store.setSpeedPct(review.tempoPct)
+    store.setLoop({ startBar: review.startBar, endBar: review.endBar })
+    store.seekToBar(review.startBar)
+  }, [review, scoreIsLoaded, playerIsReady])
 
   // Tapping a note in the score is a request to correct it, so surface the
   // editor without the user having to find it.
@@ -249,7 +282,25 @@ export function PlayerScreen() {
       <div class="score-area" ref={mountRef} />
 
       {loaded && store && (
-        <PlayerDock store={store} onOpenSheet={() => (sheetPanel.value = 'view')} />
+        <PlayerDock
+          store={store}
+          onOpenSheet={() => (sheetPanel.value = 'view')}
+          review={
+            review ? (
+              <ReviewBlock
+                key={review.passageId}
+                review={review}
+                onFinished={() => {
+                  endReview()
+                  store.setLoop(null)
+                  // Back to the practice tab, which is where the next thing to
+                  // work on is listed.
+                  navigate('practice')
+                }}
+              />
+            ) : null
+          }
+        />
       )}
 
       {loaded && store && panel && (

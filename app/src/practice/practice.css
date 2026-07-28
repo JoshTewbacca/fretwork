@@ -223,89 +223,92 @@
 }
 
 /* --- Review block ---------------------------------------------------------
-   The one screen used mid-playing, so the two verdict buttons are oversized
-   and unambiguous: amber for the clean run, neutral for not yet. */
+   Sits in the player dock in place of the speed rail. Pressed mid-playing with
+   a guitar in hand, so the two verdict buttons are oversized and unambiguous:
+   amber for the clean run, neutral for not yet. */
 
-.review-block {
+.review-dock {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 4px 0;
+  gap: 10px;
 }
 
-.review-block__label {
-  margin: 0;
-  font-size: 19px;
-  font-weight: 640;
-  letter-spacing: -0.015em;
+.review-dock__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.review-block__tempo {
-  margin: 0;
+.review-dock__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.review-dock__label {
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.review-dock__meta {
+  margin-top: 1px;
   color: var(--color-text-muted);
-  font-size: 14px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 
-.review-block__buttons {
+.review-dock__buttons {
   display: flex;
   gap: 10px;
 }
 
-.review-block__clean,
-.review-block__notyet {
+.review-dock__clean,
+.review-dock__notyet {
   appearance: none;
   flex: 1 1 0;
   border: 1px solid var(--color-border);
   border-radius: 12px;
-  min-height: 60px;
+  min-height: 58px;
   font: inherit;
   font-size: 17px;
   font-weight: 620;
   cursor: pointer;
 }
 
-.review-block__clean {
+.review-dock__clean {
   border-color: var(--color-accent);
   background: var(--color-accent);
   color: var(--color-paper);
 }
 
-.review-block__notyet {
+.review-dock__notyet {
   background: var(--color-surface-raised);
   color: var(--color-text);
 }
 
-.review-block__clean:focus-visible,
-.review-block__notyet:focus-visible {
+.review-dock__clean:focus-visible,
+.review-dock__notyet:focus-visible {
   outline: 2px solid var(--color-text);
   outline-offset: 2px;
 }
 
-.review-block__count {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
+.review-dock--result {
+  gap: 6px;
 }
 
-.review-block__finish,
-.review-block__continue {
-  min-height: 56px;
-  font-size: 16px;
-}
-
-.review-block__result-word {
+.review-dock__result {
   margin: 0;
   color: var(--color-progress);
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 680;
   letter-spacing: -0.02em;
 }
 
-.review-block__result-explanation {
-  margin: 0;
+.review-dock__explanation {
+  margin: 0 0 6px;
   color: var(--color-text-muted);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.45;
 }

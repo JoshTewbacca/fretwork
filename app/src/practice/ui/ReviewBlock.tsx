@@ -1,20 +1,23 @@
-// The heart of the feature (ADR-001): runs one review block. The user holds
-// a guitar, so this is two big thumb buttons and nothing else while the block
-// is live; the grade is derived, never self-reported.
+// The heart of the feature (ADR-001): runs one review block.
+//
+// It lives in the player dock, replacing the speed rail, because the player is
+// where the passage is actually looping at the tempo the scheduler chose. The
+// user holds a guitar, so while the block is live this is two big thumb
+// buttons and nothing else; the grade is derived, never self-reported.
 
 import { useRef, useState } from 'preact/hooks'
-import type { ReviewGrade } from '../../core/types'
+import type { ActiveReview } from '../activeReview'
 import { practiceStore } from '../practiceStore'
 import { gradeExplanation, gradeWord } from './helpers'
+import type { ReviewGrade } from '../../core/types'
 
 export interface ReviewBlockProps {
-  passageId: string
-  tempoPct: number
-  label: string
-  onFinished: (grade: ReviewGrade) => void
+  review: ActiveReview
+  /** Called once the user has seen the result and moved on. */
+  onFinished: (grade: ReviewGrade | null) => void
 }
 
-export function ReviewBlock({ passageId, tempoPct, label, onFinished }: ReviewBlockProps) {
+export function ReviewBlock({ review, onFinished }: ReviewBlockProps) {
   const [reps, setReps] = useState<boolean[]>([])
   const [saving, setSaving] = useState(false)
   const [grade, setGrade] = useState<ReviewGrade | null>(null)
@@ -23,35 +26,33 @@ export function ReviewBlock({ passageId, tempoPct, label, onFinished }: ReviewBl
 
   const cleanCount = reps.filter(Boolean).length
 
-  function recordRep(clean: boolean) {
-    setReps((prev) => [...prev, clean])
-  }
-
   async function finishBlock() {
     if (reps.length === 0 || saving) return
     setSaving(true)
     try {
-      const result = await practiceStore.recordReview(
-        passageId,
-        reps,
-        tempoPct,
-        Date.now() - startedAt.current,
+      setGrade(
+        await practiceStore.recordReview(
+          review.passageId,
+          reps,
+          review.tempoPct,
+          Date.now() - startedAt.current,
+        ),
       )
-      setGrade(result)
     } finally {
       setSaving(false)
     }
   }
 
+  // The result waits for the user rather than closing itself, so it is
+  // actually seen (see the M2 note in docs/00-milestone-plan.md).
   if (grade) {
     return (
-      <div class="review-block">
-        <h3 class="review-block__label">{label}</h3>
-        <p class="review-block__result-word">{gradeWord(grade)}</p>
-        <p class="review-block__result-explanation">{gradeExplanation(grade)}</p>
+      <div class="review-dock review-dock--result">
+        <p class="review-dock__result">{gradeWord(grade)}</p>
+        <p class="review-dock__explanation">{gradeExplanation(grade)}</p>
         <button
           type="button"
-          class="btn review-block__continue"
+          class="btn btn--primary btn--block"
           onClick={() => onFinished(grade)}
         >
           Continue
@@ -61,39 +62,41 @@ export function ReviewBlock({ passageId, tempoPct, label, onFinished }: ReviewBl
   }
 
   return (
-    <div class="review-block">
-      <h3 class="review-block__label">{label}</h3>
-      <p class="review-block__tempo">Tempo {tempoPct}%</p>
-
-      <div class="review-block__buttons">
+    <div class="review-dock">
+      <div class="review-dock__head">
+        <div class="review-dock__text">
+          <div class="review-dock__label">{review.label}</div>
+          <div class="review-dock__meta">
+            {reps.length} rep{reps.length === 1 ? '' : 's'} · {cleanCount} clean ·{' '}
+            {review.tempoPct}%
+          </div>
+        </div>
         <button
           type="button"
-          class="review-block__clean"
-          onClick={() => recordRep(true)}
+          class="btn btn--small"
+          disabled={saving}
+          onClick={() => (reps.length === 0 ? onFinished(null) : void finishBlock())}
+        >
+          {reps.length === 0 ? 'Cancel' : 'Finish'}
+        </button>
+      </div>
+
+      <div class="review-dock__buttons">
+        <button
+          type="button"
+          class="review-dock__clean"
+          onClick={() => setReps((prev) => [...prev, true])}
         >
           Clean
         </button>
         <button
           type="button"
-          class="review-block__notyet"
-          onClick={() => recordRep(false)}
+          class="review-dock__notyet"
+          onClick={() => setReps((prev) => [...prev, false])}
         >
           Not yet
         </button>
       </div>
-
-      <p class="review-block__count">
-        {reps.length} rep{reps.length === 1 ? '' : 's'} - {cleanCount} clean
-      </p>
-
-      <button
-        type="button"
-        class="btn review-block__finish"
-        disabled={reps.length === 0 || saving}
-        onClick={finishBlock}
-      >
-        Finish block
-      </button>
     </div>
   )
 }

@@ -94,6 +94,14 @@
   background-size: var(--bar-width) 100%;
 }
 
+.bar-rail__section {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
 .bar-rail__mark {
   position: absolute;
   bottom: 0;
@@ -126,6 +134,10 @@
   position: absolute;
   top: 4px;
   right: 7px;
+  max-width: 60%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-size: 9px;
   font-weight: 650;
   letter-spacing: 0.12em;
@@ -466,6 +478,14 @@
 .sheet__pair > * {
   flex: 1 1 0;
   min-width: 0;
+}
+
+/* --- Loop (sheet: Loop) --- */
+
+.loop-sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 /* --- Track list (sheet: Tracks) --- */

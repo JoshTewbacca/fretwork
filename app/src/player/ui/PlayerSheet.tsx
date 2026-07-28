@@ -11,14 +11,16 @@ import { TrackMixer } from './TrackMixer'
 import { DisplayControls } from './DisplayControls'
 import { NoteEditor } from './NoteEditor'
 import { MarkPassage } from '../../practice/ui/MarkPassage'
+import { Tuner } from '../../tuner/Tuner'
 
-export type SheetPanel = 'loop' | 'tracks' | 'view' | 'mark' | 'note'
+export type SheetPanel = 'loop' | 'tracks' | 'view' | 'mark' | 'tune' | 'note'
 
 const TABS: { panel: SheetPanel; label: string }[] = [
   { panel: 'loop', label: 'Loop' },
   { panel: 'tracks', label: 'Tracks' },
   { panel: 'view', label: 'View' },
   { panel: 'mark', label: 'Mark' },
+  { panel: 'tune', label: 'Tune' },
 ]
 
 export interface PlayerSheetProps {
@@ -50,9 +52,17 @@ export function PlayerSheet({
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [onClose])
 
+  // You cannot tune over the synth, so opening the tuner stops playback.
+  useEffect(() => {
+    if (panel === 'tune') store.stop()
+  }, [panel, store])
+
   // The note panel is not a tab: it appears because a note was tapped, and
   // clearing the selection is what dismisses it.
   const showTabs = panel !== 'note'
+  const playerTrack = store.tracks.value.find(
+    (track) => track.index === store.playerTrackIndex.value,
+  )
 
   return (
     <>
@@ -89,6 +99,12 @@ export function PlayerSheet({
           {panel === 'loop' && <LoopControl store={store} />}
           {panel === 'tracks' && <TrackMixer store={store} />}
           {panel === 'view' && <DisplayControls store={store} />}
+          {panel === 'tune' && (
+            <Tuner
+              tuning={playerTrack?.tuning ?? []}
+              tuningName={playerTrack?.tuningName ?? ''}
+            />
+          )}
           {panel === 'note' && (
             <NoteEditor
               store={store}

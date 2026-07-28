@@ -22,6 +22,8 @@ export function BarRail({ store, passages }: BarRailProps) {
   const barCount = store.barCount.value
   const currentBar = store.currentBarIndex.value
   const loop = store.loop.value
+  const sections = store.sections.value
+  const section = store.currentSection.value
 
   if (barCount <= 0) return null
 
@@ -62,6 +64,14 @@ export function BarRail({ store, passages }: BarRailProps) {
         <span class="bar-rail__ticks" style={{ '--bar-width': pct(1) }} />
       )}
 
+      {/* Where the song changes part. Drawn under the marks and the loop so
+          they stay the louder signals. */}
+      {sections.map((s) =>
+        s.startBar === 0 ? null : (
+          <span key={s.startBar} class="bar-rail__section" style={{ left: pct(s.startBar) }} />
+        ),
+      )}
+
       {passages.map((passage) => (
         <span
           key={passage.id}
@@ -85,7 +95,8 @@ export function BarRail({ store, passages }: BarRailProps) {
 
       <span class="bar-rail__head" style={{ left: pct(currentBar) }} />
       <span class="bar-rail__legend">
-        Bar {currentBar + 1} / {barCount}
+        {section ? `${section.label} · ` : ''}
+        {currentBar + 1} / {barCount}
       </span>
     </button>
   )

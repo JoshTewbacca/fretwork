@@ -3,15 +3,12 @@
 
 import { useState } from 'preact/hooks'
 import { practiceStore } from '../practiceStore'
+import { startReview } from '../activeReview'
 import type { SessionPlan } from '../core/sessionBuilder'
-
-export interface SessionBuilderProps {
-  onStartReview: (passageId: string, tempoPct: number, label: string) => void
-}
 
 const MINUTE_OPTIONS = [10, 20, 30, 45]
 
-export function SessionBuilder({ onStartReview }: SessionBuilderProps) {
+export function SessionBuilder() {
   const [minutes, setMinutes] = useState(20)
   const [plan, setPlan] = useState<SessionPlan | null>(null)
 
@@ -58,9 +55,14 @@ export function SessionBuilder({ onStartReview }: SessionBuilderProps) {
                   <button
                     type="button"
                     class="btn btn--small session-builder__item-start"
-                    onClick={() =>
-                      onStartReview(item.passageId as string, item.tempoPct, item.label)
-                    }
+                    onClick={() => {
+                      // The plan carries ids; the player needs the passage
+                      // itself to know which bars to loop.
+                      const passage = practiceStore.passages.value.find(
+                        (p) => p.id === item.passageId,
+                      )
+                      if (passage) startReview(passage, item.tempoPct, item.label)
+                    }}
                   >
                     Start
                   </button>

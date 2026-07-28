@@ -2,6 +2,7 @@
 // only controls reachable with a guitar in your hands, so they are the only
 // ones that get permanent screen space.
 
+import type { JSX } from 'preact'
 import type { PlayerStore } from '../core/PlayerStore'
 import { SpeedRail } from './SpeedRail'
 
@@ -17,9 +18,15 @@ function formatTime(ms: number): string {
 export interface PlayerDockProps {
   store: PlayerStore
   onOpenSheet: () => void
+  /**
+   * Shown in place of the speed rail while a review block is running: the
+   * tempo is the scheduler's to choose during a review, so the rail would only
+   * invite the user to invalidate their own result.
+   */
+  review?: JSX.Element | null
 }
 
-export function PlayerDock({ store, onOpenSheet }: PlayerDockProps) {
+export function PlayerDock({ store, onOpenSheet, review }: PlayerDockProps) {
   const isPlaying = store.transport.value === 'playing'
   const loop = store.loop.value
   const currentBar = store.currentBarIndex.value
@@ -71,7 +78,7 @@ export function PlayerDock({ store, onOpenSheet }: PlayerDockProps) {
         </button>
       </div>
 
-      <SpeedRail store={store} />
+      {review ?? <SpeedRail store={store} />}
     </div>
   )
 }

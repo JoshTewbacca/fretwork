@@ -27,11 +27,25 @@ export interface TrackViewModel {
   volume: number
   transpositionPitch: number
   capo: number
+  /** String tuning as MIDI numbers, top tab line first. Empty for non-fretted
+   *  instruments. Drives the tuner, which tunes to the song rather than to a
+   *  generic E standard. */
+  tuning: number[]
+  /** e.g. "Drop D". Empty when the file names no tuning. */
+  tuningName: string
 }
 
 export interface LoopRegion {
   startBar: number
   endBar: number
+}
+
+/** A named part of the song, as marked in the file: Intro, Verse, Chorus. */
+export interface SongSection {
+  /** Zero-based, inclusive. */
+  startBar: number
+  endBar: number
+  label: string
 }
 
 /** A note the user tapped, flattened so the UI never touches alphaTab types. */
@@ -73,6 +87,10 @@ export interface PlayerStore {
    * written at. Replaces the notation tempo band, which is not drawn.
    */
   readonly currentTempoBpm: ReadonlySignal<number>
+  /** Named sections of the song, in order. Empty when the file marks none. */
+  readonly sections: ReadonlySignal<SongSection[]>
+  /** The section containing the playhead, or null. */
+  readonly currentSection: ReadonlySignal<SongSection | null>
   readonly staveProfile: ReadonlySignal<StaveProfileName>
   /** True when a standard-notation stave is drawn above the tab. */
   readonly notationVisible: ReadonlySignal<boolean>
@@ -268,6 +286,19 @@ export function createPlayerStore(
   settings.player.playerMode = alphaTab.PlayerMode.EnabledSynthesizer
   settings.player.enableCursor = true
   settings.player.enableUserInteraction = true
+  // Follow the cursor. alphaTab defaults scrollElement to "html,body", which
+  // in this app never moves - the shell is a fixed 100dvh column and the score
+  // element itself is the scroller - so without this the cursor simply walks
+  // off the bottom of the screen and you scroll by hand while playing.
+  //
+  // OffScreen rather than Continuous: it only scrolls once the current system
+  // would leave the viewport, so the tab holds still for a few systems and
+  // then turns the page, instead of creeping on every system change.
+  settings.player.scrollElement = element
+  settings.player.scrollMode = alphaTab.ScrollMode.OffScreen
+  // Leave a little headroom above the system being played rather than butting
+  // it against the top edge.
+  settings.player.scrollOffsetY = -16
   settings.display.scale = initialZoom / 100
   settings.display.staveProfile = STAVE_PROFILE_MAP[initialProfile]
   applyDarkNotationTheme(settings)
@@ -298,6 +329,7 @@ export function createPlayerStore(
   // last automation forward, so seeking into the middle reports the right
   // tempo rather than only what the current bar happens to declare.
   const barTempos: Signal<number[]> = signal([])
+  const sections: Signal<SongSection[]> = signal([])
   const staveProfile: Signal<StaveProfileName> = signal(initialProfile)
   const showAllTracks = signal(initialShowAllTracks)
   const zoomPct = signal(initialZoom)
@@ -339,6 +371,13 @@ export function createPlayerStore(
   const scoreArtist = computed(() => (scoreLoaded.value ? (api.score?.artist ?? '') : ''))
   const notationVisible = computed(
     () => staveProfile.value === 'scoreTab' || staveProfile.value === 'score',
+  )
+  const currentSection = computed(
+    () =>
+      sections.value.find(
+        (section) =>
+          currentBarIndex.value >= section.startBar && currentBarIndex.value <= section.endBar,
+      ) ?? null,
   )
   const currentTempoBpm = computed(() => {
     const tempos = barTempos.value
@@ -383,6 +422,20 @@ export function createPlayerStore(
     currentBarIndex.value = 0
     barCount.value = score.masterBars.length
     dimTabClefs(score)
+    // Sections run from their own marker to the next one, so each is only
+    // known once the following marker is found (or the song ends).
+    const found: SongSection[] = []
+    score.masterBars.forEach((masterBar, index) => {
+      const marker = masterBar.section
+      if (!marker) return
+      const label = (marker.text || marker.marker || '').trim()
+      if (!label) return
+      const previous = found[found.length - 1]
+      if (previous) previous.endBar = index - 1
+      found.push({ startBar: index, endBar: score.masterBars.length - 1, label })
+    })
+    sections.value = found
+
     let tempo = score.tempo
     barTempos.value = score.masterBars.map((masterBar) => {
       const automations = masterBar.tempoAutomations
@@ -399,6 +452,8 @@ export function createPlayerStore(
       volume: 1,
       transpositionPitch: 0,
       capo: t.staves[0]?.capo ?? 0,
+      tuning: t.staves[0]?.tuning ?? [],
+      tuningName: t.staves[0]?.tuningName ?? '',
     }))
     // Default the "your part" selection to the first guitar track, then render
     // to match: with showAllTracks off this is what makes the tab large.
@@ -478,6 +533,8 @@ export function createPlayerStore(
     currentBarIndex,
     barCount,
     currentTempoBpm,
+    sections,
+    currentSection,
     staveProfile,
     notationVisible,
     showAllTracks,
