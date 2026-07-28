@@ -2,7 +2,7 @@
 // a guitar, so this is two big thumb buttons and nothing else while the block
 // is live; the grade is derived, never self-reported.
 
-import { useState } from 'preact/hooks'
+import { useRef, useState } from 'preact/hooks'
 import type { ReviewGrade } from '../../core/types'
 import { practiceStore } from '../practiceStore'
 import { gradeExplanation, gradeWord } from './helpers'
@@ -18,6 +18,8 @@ export function ReviewBlock({ passageId, tempoPct, label, onFinished }: ReviewBl
   const [reps, setReps] = useState<boolean[]>([])
   const [saving, setSaving] = useState(false)
   const [grade, setGrade] = useState<ReviewGrade | null>(null)
+  // Time spent on the block, so reviews count toward the practice log.
+  const startedAt = useRef(Date.now())
 
   const cleanCount = reps.filter(Boolean).length
 
@@ -29,7 +31,12 @@ export function ReviewBlock({ passageId, tempoPct, label, onFinished }: ReviewBl
     if (reps.length === 0 || saving) return
     setSaving(true)
     try {
-      const result = await practiceStore.recordReview(passageId, reps, tempoPct)
+      const result = await practiceStore.recordReview(
+        passageId,
+        reps,
+        tempoPct,
+        Date.now() - startedAt.current,
+      )
       setGrade(result)
     } finally {
       setSaving(false)

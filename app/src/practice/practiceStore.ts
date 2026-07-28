@@ -31,7 +31,12 @@ export const practiceStore: {
   loading: ReadonlySignal<boolean>
   refresh: () => Promise<void>
   markPassage: (input: MarkPassageInput) => Promise<Passage>
-  recordReview: (passageId: string, repResults: boolean[], tempoPct: number) => Promise<ReviewGrade>
+  recordReview: (
+    passageId: string,
+    repResults: boolean[],
+    tempoPct: number,
+    durationMs?: number,
+  ) => Promise<ReviewGrade>
   retirePassage: (passageId: string) => Promise<void>
   planSession: (minutes: number, songIds?: string[], titles?: Map<string, string>) => SessionPlan
   rebuildFromEvents: () => Promise<void>
@@ -93,7 +98,7 @@ export const practiceStore: {
    * Records a completed review block: appends the immutable event, then
    * updates the derived state for this passage and any nested relatives.
    */
-  async recordReview(passageId, repResults, tempoPct) {
+  async recordReview(passageId, repResults, tempoPct, durationMs) {
     const grade = deriveGrade(repResults)
     const now = Date.now()
     const db = await getDb()
@@ -101,6 +106,27 @@ export const practiceStore: {
     await appendPracticeEvent({ type: 'review_result', passageId, tempoPct, grade }, now)
 
     const passage = await getPassage(db, passageId)
+
+    // A review block is time spent playing, so it also belongs in the practice
+    // log. Without this, someone who only does reviews would always see zero
+    // minutes practised and an empty per-song breakdown.
+    if (passage && durationMs !== undefined && durationMs > 0) {
+      await appendPracticeEvent(
+        {
+          type: 'loop_block',
+          songId: passage.songId,
+          passageId,
+          startBar: passage.startBar,
+          endBar: passage.endBar,
+          tempoPct,
+          reps: repResults.length,
+          cleanReps: repResults.filter(Boolean).length,
+          durationMs,
+        },
+        now,
+      )
+    }
+
     const current = states.value.get(passageId) ?? createInitialState(passageId, tempoPct, now)
     const next = applyReview(current, { grade, tempoPct, now })
     await putReviewState(db, next)
