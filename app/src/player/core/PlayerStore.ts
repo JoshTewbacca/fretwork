@@ -67,6 +67,12 @@ export interface PlayerStore {
   /** Zero-based master bar index of the beat currently being played. */
   readonly currentBarIndex: ReadonlySignal<number>
   readonly barCount: ReadonlySignal<number>
+  /**
+   * Tempo in force at the current bar, already scaled by the speed setting -
+   * the BPM you would set a metronome to right now, not what the file was
+   * written at. Replaces the notation tempo band, which is not drawn.
+   */
+  readonly currentTempoBpm: ReadonlySignal<number>
   readonly staveProfile: ReadonlySignal<StaveProfileName>
   /** True when a standard-notation stave is drawn above the tab. */
   readonly notationVisible: ReadonlySignal<boolean>
@@ -148,7 +154,7 @@ export interface PlayerStoreOptions {
 const GUITAR_MIDI_PROGRAMS = new Set([24, 25, 26, 27, 28, 29, 30, 31])
 
 /** Notation drawn inside the canvas that the app chrome already shows, or that
- *  only costs vertical space on a phone. */
+ *  only costs space on a phone. */
 const HIDDEN_NOTATION_ELEMENTS = [
   alphaTab.NotationElement.ScoreTitle,
   alphaTab.NotationElement.ScoreSubTitle,
@@ -158,6 +164,15 @@ const HIDDEN_NOTATION_ELEMENTS = [
   alphaTab.NotationElement.ScoreMusic,
   alphaTab.NotationElement.ScoreWordsAndMusic,
   alphaTab.NotationElement.ScoreCopyright,
+  // The rotated track name down the left edge. It costs a column on every
+  // system to repeat what the app bar already says.
+  alphaTab.NotationElement.TrackNames,
+  // The tempo band. A file whose first bar carries both a score tempo and a
+  // tempo automation draws both markers at the same x and they overlap into
+  // an unreadable smear; and each change costs a tall band above the staff.
+  // The dock shows the tempo in force instead, which also tracks the speed
+  // setting rather than only stating what the file was written at.
+  alphaTab.NotationElement.EffectTempo,
 ]
 
 const STAVE_PROFILE_MAP: Record<StaveProfileName, alphaTab.StaveProfile> = {
@@ -191,6 +206,49 @@ function applyDarkNotationTheme(settings: alphaTab.Settings): void {
   resources.tablatureFont.size = 15
 }
 
+/**
+ * Reclaim the horizontal space alphaTab reserves for a printed page. The
+ * defaults are page-sized and, because padding is divided by the zoom scale,
+ * they cost the same rendered pixels however far you zoom in: 35px on each
+ * side is nearly a fifth of a 390px phone.
+ *
+ * stretchForce below 1 tightens the spacing between beats without shrinking
+ * anything, so more bars fit per system. That is worth more than it sounds:
+ * every system repeats the TAB clef, so fewer systems means less of the page
+ * spent saying "TAB".
+ */
+function applyPhoneLayout(settings: alphaTab.Settings): void {
+  settings.display.padding = [6, 10]
+  settings.display.systemLabelPaddingRight = 0
+  settings.display.accoladeBarPaddingRight = 0
+  settings.display.firstStaffPaddingLeft = 2
+  settings.display.staffPaddingLeft = 0
+  settings.display.stretchForce = 0.8
+}
+
+/**
+ * Dim the "TAB" clef that alphaTab draws at the head of every system.
+ *
+ * It cannot be hidden: the renderer adds it unconditionally for the first bar
+ * of each staff and the styles API only exposes colour, not visibility. Drawn
+ * at full strength it competes with the fret numbers on every line for no
+ * information; at a third of that it reads as a quiet gutter mark, which is
+ * all it needs to be.
+ */
+function dimTabClefs(score: alphaTab.model.Score): void {
+  const { BarStyle, BarSubElement, Color } = alphaTab.model
+  const dim = new Color(0xed, 0xe6, 0xd6, 0x59)
+  for (const track of score.tracks) {
+    for (const staff of track.staves) {
+      for (const bar of staff.bars) {
+        const style = bar.style ?? new BarStyle()
+        style.colors.set(BarSubElement.GuitarTabsClef, dim)
+        bar.style = style
+      }
+    }
+  }
+}
+
 export function createPlayerStore(
   element: HTMLElement,
   options: PlayerStoreOptions,
@@ -213,6 +271,7 @@ export function createPlayerStore(
   settings.display.scale = initialZoom / 100
   settings.display.staveProfile = STAVE_PROFILE_MAP[initialProfile]
   applyDarkNotationTheme(settings)
+  applyPhoneLayout(settings)
   for (const notationElement of HIDDEN_NOTATION_ELEMENTS) {
     settings.notation.elements.set(notationElement, false)
   }
@@ -235,6 +294,10 @@ export function createPlayerStore(
   const audioUnlocked = signal(false)
   const currentBarIndex = signal(0)
   const barCount = signal(0)
+  // Tempo in force at each bar, resolved once at load. Built by carrying the
+  // last automation forward, so seeking into the middle reports the right
+  // tempo rather than only what the current bar happens to declare.
+  const barTempos: Signal<number[]> = signal([])
   const staveProfile: Signal<StaveProfileName> = signal(initialProfile)
   const showAllTracks = signal(initialShowAllTracks)
   const zoomPct = signal(initialZoom)
@@ -277,6 +340,12 @@ export function createPlayerStore(
   const notationVisible = computed(
     () => staveProfile.value === 'scoreTab' || staveProfile.value === 'score',
   )
+  const currentTempoBpm = computed(() => {
+    const tempos = barTempos.value
+    if (tempos.length === 0) return 0
+    const base = tempos[Math.min(currentBarIndex.value, tempos.length - 1)]
+    return Math.round((base * speedPct.value) / 100)
+  })
 
   /**
    * Apply the current track-visibility rule. Rendering only the played track is
@@ -313,6 +382,13 @@ export function createPlayerStore(
     hasUnsavedCorrections.value = false
     currentBarIndex.value = 0
     barCount.value = score.masterBars.length
+    dimTabClefs(score)
+    let tempo = score.tempo
+    barTempos.value = score.masterBars.map((masterBar) => {
+      const automations = masterBar.tempoAutomations
+      if (automations.length > 0) tempo = automations[automations.length - 1].value
+      return tempo
+    })
     tracks.value = score.tracks.map((t) => ({
       index: t.index,
       // Not every file names its tracks; never render a blank row.
@@ -401,6 +477,7 @@ export function createPlayerStore(
     audioUnlocked,
     currentBarIndex,
     barCount,
+    currentTempoBpm,
     staveProfile,
     notationVisible,
     showAllTracks,

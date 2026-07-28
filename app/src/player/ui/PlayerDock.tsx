@@ -24,8 +24,13 @@ export function PlayerDock({ store, onOpenSheet }: PlayerDockProps) {
   const loop = store.loop.value
   const currentBar = store.currentBarIndex.value
 
+  // The tempo band is not drawn in the score, so the BPM in force belongs
+  // here. It is already scaled by the speed setting: this is the number you
+  // would set a metronome to right now.
+  const bpm = store.currentTempoBpm.value
   const details = [
     `Bar ${currentBar + 1}`,
+    bpm > 0 ? `${bpm} BPM` : null,
     loop ? `Loop ${loop.startBar + 1}–${loop.endBar + 1}` : null,
   ].filter(Boolean)
 
