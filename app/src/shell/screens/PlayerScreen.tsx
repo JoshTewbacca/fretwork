@@ -4,6 +4,7 @@ import { createPlayerStore, type PlayerStore } from '../../player/core/PlayerSto
 import { installAudioSessionHandling } from '../../player/core/audioSession'
 import { PlayerControls } from '../../player/ui/PlayerControls'
 import { NoteEditor } from '../../player/ui/NoteEditor'
+import { MarkPassage } from '../../practice/ui/MarkPassage'
 import { importTabFile } from '../../import/importFile'
 import { ACCEPT_ATTRIBUTE } from '../../import/format'
 import { requestedSongId, clearRequestedSong } from '../../library/openSong'
@@ -196,6 +197,15 @@ export function PlayerScreen() {
         <>
           <PlayerControls store={store} />
           <NoteEditor store={store} onSave={saveCorrections} saving={saving.value} />
+          {/* Trouble spots get marked while playing, so this lives here rather
+              than in the practice tab. */}
+          {currentSong.value && (
+            <MarkPassage
+              songId={currentSong.value.id}
+              trackIndex={store.playerTrackIndex.value}
+              currentBar={store.currentBarIndex.value}
+            />
+          )}
         </>
       )}
 

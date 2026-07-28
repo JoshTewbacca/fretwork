@@ -1,0 +1,186 @@
+/* Practice log and stats views. Mobile-first, self-contained: uses only the
+   app's existing custom properties (see src/index.css), same convention as
+   src/player/ui/controls.css. Fits a 390px viewport with no horizontal
+   overflow. */
+
+.stats-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 12px;
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.stats-panel * {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.stats-summary {
+  display: flex;
+  gap: 8px;
+}
+
+.stats-summary__item {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.stats-summary__value {
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-summary__label {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.stats-sparkline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sparkline {
+  display: block;
+  width: 100%;
+  color: var(--color-accent);
+}
+
+.stats-sparkline__caption {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.stats-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.stats-section__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.stats-empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.stats-song-list,
+.stats-outcomes,
+.practice-log {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stats-song-list__row,
+.stats-outcomes__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 4px;
+}
+
+.stats-song-list__title {
+  overflow: hidden;
+  flex: 1 1 auto;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.stats-song-list__value,
+.stats-outcomes__value {
+  flex: none;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-outcomes__label {
+  flex: 1 1 auto;
+}
+
+.stats-section--collapsible summary {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 6px 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+  list-style: none;
+}
+
+.stats-section--collapsible summary::-webkit-details-marker {
+  display: none;
+}
+
+.stats-section--collapsible summary::after {
+  content: '+';
+  margin-left: auto;
+  font-size: 18px;
+  color: var(--color-text-muted);
+}
+
+.stats-section--collapsible[open] summary::after {
+  content: '\2212';
+}
+
+.practice-log__empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.practice-log__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.practice-log__row:last-child {
+  border-bottom: none;
+}
+
+.practice-log__date {
+  font-weight: 600;
+}
+
+.practice-log__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.practice-log__duration {
+  color: var(--color-accent);
+}

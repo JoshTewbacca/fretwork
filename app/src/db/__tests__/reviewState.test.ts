@@ -18,6 +18,8 @@ function state(passageId: string, dueAt: number): PassageReviewState {
     dueAt,
     reps: 0,
     lapses: 0,
+    consecutiveEasy: 0,
+    consecutiveLapses: 0,
     rebuiltFromEventId: 'e-0',
   }
 }

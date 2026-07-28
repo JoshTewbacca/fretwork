@@ -3,12 +3,13 @@
 
 import { signal } from '@preact/signals'
 
-export type Route = 'player' | 'search' | 'library' | 'settings'
+export type Route = 'player' | 'practice' | 'search' | 'library' | 'settings'
 
 const DEFAULT_ROUTE: Route = 'player'
 
 const ROUTES_BY_HASH: Record<string, Route> = {
   '#/player': 'player',
+  '#/practice': 'practice',
   '#/search': 'search',
   '#/library': 'library',
   '#/settings': 'settings',

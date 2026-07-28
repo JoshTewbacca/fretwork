@@ -100,6 +100,20 @@ Acceptance:
 Cost: 3 Sonnet tasks (practice UI screens, log/stats views, tests for the fold given a spec
 of cases). Scheduler itself is Opus. est. 15–20% of spend.
 
+**Status (2026-07-27): built.** The scheduler, passage geometry, kernel/parent propagation,
+event fold and session builder are implemented and covered by 62 tests written by Opus
+rather than delegated, since a test suite written against the same misunderstanding as the
+implementation proves nothing. The acceptance criteria above are met in code and unit
+tests; the ramp and scheduling still need real use over several days to tune, which is
+exactly what the event-log architecture makes safe to do (ADR-004: change the fold and
+rebuild, never rewrite history).
+
+Two judgment calls made during the build and worth revisiting after real use:
+- Streaks count only days with a playthrough, loop block or review. Opening the app or
+  marking a trouble spot does not count, because an unearned streak is worse than none.
+- A review block reports its derived grade and waits for the user to continue, rather than
+  closing immediately, so the result is actually seen.
+
 ## Milestone 3 — real-audio play-along
 
 Scope: Demucs pipeline (segment-size config, OOM step-down retry, resumable `jobs` queue),

@@ -1,0 +1,461 @@
+/* Practice-intelligence UI (ADR-001): mobile-first, self-contained. Uses only
+   the app's existing custom properties (see src/index.css) and follows the
+   visual conventions of player/ui/controls.css so it can sit anywhere in the
+   shell. Fits a 390px viewport with no horizontal overflow; interactive
+   targets are at least 44x44px, 56px for the review buttons the user presses
+   with a guitar in hand. */
+
+.practice-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 10px 12px;
+  background: var(--color-surface);
+  font-size: 14px;
+}
+
+.practice-panel * {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.practice-panel__section {
+  border-top: 1px solid var(--color-border);
+  padding-top: 4px;
+}
+
+.practice-panel__section summary {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 6px 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+  list-style: none;
+}
+
+.practice-panel__section summary::-webkit-details-marker {
+  display: none;
+}
+
+.practice-panel__section summary::after {
+  content: '+';
+  margin-left: auto;
+  font-size: 18px;
+  color: var(--color-text-muted);
+}
+
+.practice-panel__section[open] summary::after {
+  content: '\2212';
+}
+
+.practice-panel__section > :not(summary) {
+  padding: 4px 4px 12px;
+}
+
+/* Generic small button, matches player/ui/controls.css's .btn. */
+.btn {
+  appearance: none;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.btn--small {
+  padding: 6px 10px;
+  font-size: 13px;
+  min-height: 44px;
+}
+
+/* --- Due list --- */
+
+.due-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.due-list__empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.due-list__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.due-list__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.due-list__label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+}
+
+.due-list__meta {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.due-list__start {
+  flex: none;
+}
+
+/* --- Session builder --- */
+
+.session-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.session-builder__minutes {
+  display: flex;
+  gap: 8px;
+}
+
+.session-builder__preset {
+  appearance: none;
+  flex: 1 1 0;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  min-height: 44px;
+  padding: 6px 4px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.session-builder__preset.is-active {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+  background: var(--color-accent-muted);
+}
+
+.session-builder__preset:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.session-builder__hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.session-builder__plan {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.session-builder__items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.session-builder__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.session-builder__item-label {
+  overflow: hidden;
+  flex: 1 1 auto;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+}
+
+.session-builder__item-minutes {
+  flex: none;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.session-builder__item-start {
+  flex: none;
+}
+
+.session-builder__total {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.session-builder__deferred {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+/* --- Mark passage --- */
+
+.mark-passage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mark-passage__bars {
+  display: flex;
+  gap: 10px;
+}
+
+.mark-passage__field {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mark-passage__field--label {
+  flex: 1 1 100%;
+}
+
+.mark-passage__field-label {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.mark-passage__input {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 14px;
+}
+
+.mark-passage__input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.mark-passage__input--text {
+  width: 100%;
+}
+
+.mark-passage__submit {
+  align-self: flex-start;
+}
+
+.mark-passage__confirmation {
+  margin: 0;
+  color: var(--color-accent);
+  font-size: 13px;
+}
+
+/* --- Passage manager --- */
+
+.passage-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.passage-manager__rebuild {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.passage-manager__hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.passage-manager__empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.passage-manager__group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.passage-manager__song {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.passage-manager__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.passage-manager__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.passage-manager__label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+}
+
+.passage-manager__meta {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.passage-manager__retire {
+  flex: none;
+}
+
+/* --- Review block --- */
+
+.review-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px;
+}
+
+.review-block__label {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.review-block__tempo {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.review-block__buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.review-block__clean,
+.review-block__notyet {
+  appearance: none;
+  flex: 1 1 0;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  min-height: 56px;
+  font: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.review-block__clean {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.review-block__notyet {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.review-block__clean:focus-visible,
+.review-block__notyet:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
+}
+
+.review-block__count {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.review-block__finish {
+  min-height: 56px;
+  font-size: 16px;
+}
+
+.review-block__result-word {
+  margin: 0;
+  color: var(--color-accent);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.review-block__result-explanation {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.review-block__continue {
+  min-height: 56px;
+  font-size: 16px;
+}

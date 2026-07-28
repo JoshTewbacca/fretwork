@@ -91,6 +91,8 @@ interface PassageReviewState {
   intervalDays: number;
   dueAt: number;
   reps: number; lapses: number;
+  consecutiveEasy: number;    // two in maintenance unlock overspeed review
+  consecutiveLapses: number;  // two drop the passage back to acquisition
   lastReviewedAt?: number;
   rebuiltFromEventId: string; // last event folded into this state (for incremental rebuild)
 }

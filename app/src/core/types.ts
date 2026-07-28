@@ -71,13 +71,19 @@ export type ReviewGrade = 'fail' | 'hard' | 'good' | 'easy'
 export interface PassageReviewState {
   passageId: string
   phase: PracticePhase
+  /** Highest tempo (percent) at which a clean block has been played. */
   masteredTempoPct: number
+  /** Tempo the next review block runs at. */
   reviewTempoPct: number
   ease: number
   intervalDays: number
   dueAt: number
   reps: number
   lapses: number
+  /** Consecutive 'easy' grades; two in maintenance unlock overspeed review. */
+  consecutiveEasy: number
+  /** Consecutive lapses; two drops the passage back to acquisition. */
+  consecutiveLapses: number
   lastReviewedAt?: number
   rebuiltFromEventId: string
 }

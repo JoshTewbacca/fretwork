@@ -21,6 +21,17 @@ export function PlayerIcon() {
   )
 }
 
+export function PracticeIcon() {
+  // A metronome: the practice tab is about deliberate, timed repetition.
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M9.6 3.4h4.8l3.4 17.2H6.2L9.6 3.4z" />
+      <path d="M7.4 14h9.2" />
+      <path d="M16.4 6.6 10 15.4" />
+    </svg>
+  )
+}
+
 export function LibraryIcon() {
   return (
     <svg {...ICON_PROPS}>
