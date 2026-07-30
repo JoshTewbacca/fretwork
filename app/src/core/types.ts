@@ -43,12 +43,22 @@ export interface SyncMap {
 export interface AudioBundle {
   id: string
   songId: string
+  /**
+   * Everything but the guitar once separation has run; the full mix before it.
+   * Always present - a bundle without audio is not a bundle.
+   */
   backingBlobHash: string
-  guitarBlobHash: string
+  /**
+   * The isolated guitar. Absent until stem separation has run: a full-mix bundle
+   * is playable and useful on its own, so this is optional rather than the data
+   * model's original required field.
+   */
+  guitarBlobHash?: string
   durationMs: number
   encodeBitrateKbps: number
   sourceAudioFingerprint: string
-  demucsModel: 'htdemucs_6s'
+  /** Absent when the audio is the untouched mix. */
+  demucsModel?: 'htdemucs_6s'
   syncMap: SyncMap
   createdAt: number
 }

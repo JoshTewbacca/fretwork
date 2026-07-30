@@ -7,6 +7,15 @@
 import * as alphaTab from '@coderline/alphatab'
 import { signal, computed, type ReadonlySignal, type Signal } from '@preact/signals'
 import { DEFAULT_ZOOM_PCT, clampZoom } from './zoom'
+import type { SyncMap } from '../../core/types'
+import { applySyncMap, clearSyncPoints } from './syncPoints'
+import {
+  availableModes,
+  createExternalMedia,
+  type AudioMode,
+  type AudioSources,
+  type ExternalMediaController,
+} from './externalMedia'
 
 export type TransportState = 'stopped' | 'playing' | 'paused'
 
@@ -87,6 +96,12 @@ export interface PlayerStore {
    * written at. Replaces the notation tempo band, which is not drawn.
    */
   readonly currentTempoBpm: ReadonlySignal<number>
+  /** Which audio the user is playing along to. 'synth' when no bundle is loaded. */
+  readonly audioMode: ReadonlySignal<AudioMode>
+  /** Modes this song can offer, given whether it has a bundle and stems. */
+  readonly availableAudioModes: ReadonlySignal<AudioMode[]>
+  /** The loaded bundle's sync map, for reporting how well it will track. */
+  readonly syncMap: ReadonlySignal<SyncMap | null>
   /** Named sections of the song, in order. Empty when the file marks none. */
   readonly sections: ReadonlySignal<SongSection[]>
   /** The section containing the playhead, or null. */
@@ -130,6 +145,14 @@ export interface PlayerStore {
   setTrackCapo(trackIndex: number, fret: number): void
   /** Which tracks are rendered as notation (the mixer affects audio for all). */
   setRenderedTracks(trackIndexes: number[]): void
+  /**
+   * Attach (or clear) the real recording for the loaded song. Passing null
+   * returns the player to synth-only. Safe to call before or after the score
+   * loads; the sync map is applied once a score is present.
+   */
+  setAudioSources(sources: AudioSources | null, syncMap: SyncMap | null): void
+  /** Switch between the synth and the recording's stems. */
+  setAudioMode(mode: AudioMode): void
   setStaveProfile(profile: StaveProfileName): void
   /** Show or hide the standard-notation stave, keeping the tab either way. */
   setNotationVisible(visible: boolean): void
@@ -330,6 +353,12 @@ export function createPlayerStore(
   // tempo rather than only what the current bar happens to declare.
   const barTempos: Signal<number[]> = signal([])
   const sections: Signal<SongSection[]> = signal([])
+  const audioMode: Signal<AudioMode> = signal('synth')
+  const syncMap: Signal<SyncMap | null> = signal(null)
+  const audioSources: Signal<AudioSources | null> = signal(null)
+  // The live audio elements, kept out of any signal: the UI must not reach into
+  // them, and replacing them is a side effect, not a state transition.
+  let externalMedia: ExternalMediaController | null = null
   const staveProfile: Signal<StaveProfileName> = signal(initialProfile)
   const showAllTracks = signal(initialShowAllTracks)
   const zoomPct = signal(initialZoom)
@@ -372,6 +401,52 @@ export function createPlayerStore(
   const notationVisible = computed(
     () => staveProfile.value === 'scoreTab' || staveProfile.value === 'score',
   )
+  const availableAudioModes = computed(() => availableModes(audioSources.value))
+
+  /**
+   * Push the score's sync points into the player. Only meaningful in external
+   * media mode: in synth mode the points would warp alphaTab's own tempo to
+   * chase an audio track that is not playing, so they are cleared instead.
+   */
+  function refreshSyncPoints() {
+    const score = api.score
+    if (!score) return
+    const map = syncMap.value
+    if (map && audioMode.value !== 'synth') applySyncMap(score, map)
+    else clearSyncPoints(score)
+    api.updateSyncPoints()
+  }
+
+  /** Hand alphaTab our audio, replacing the synth. */
+  function attachExternalMedia(mode: Exclude<AudioMode, 'synth'>) {
+    const sources = audioSources.value
+    if (!sources) return
+
+    externalMedia?.destroy()
+    externalMedia = createExternalMedia(sources, mode, (ms) => {
+      const output = api.player?.output as alphaTab.synth.IExternalMediaSynthOutput | undefined
+      output?.updatePosition(ms)
+    })
+
+    // Changing playerMode makes alphaTab destroy the current player and build a
+    // new one, so the handler can only be attached after updateSettings.
+    api.settings.player.playerMode = alphaTab.PlayerMode.EnabledExternalMedia
+    api.updateSettings()
+    const output = api.player?.output as alphaTab.synth.IExternalMediaSynthOutput | undefined
+    if (output) output.handler = externalMedia.handler
+  }
+
+  /** Give playback back to the synthesiser. */
+  function attachSynth() {
+    externalMedia?.destroy()
+    externalMedia = null
+    api.settings.player.playerMode = alphaTab.PlayerMode.EnabledSynthesizer
+    api.updateSettings()
+    // The rebuilt synth starts with no soundfont, so it has to be loaded again
+    // or the player is silent with no error.
+    void api.loadSoundFontFromUrl(options.soundFontUrl, false)
+  }
+
   const currentSection = computed(
     () =>
       sections.value.find(
@@ -460,6 +535,9 @@ export function createPlayerStore(
     const firstGuitar = tracks.value.find((t) => t.isGuitar)
     playerTrackIndex.value = firstGuitar ? firstGuitar.index : 0
     applyRenderedTracks()
+    // A freshly loaded score carries no sync points, so re-apply for the case
+    // where a bundle was attached before the score arrived.
+    refreshSyncPoints()
   })
 
   api.playedBeatChanged.on((beat) => {
@@ -533,6 +611,9 @@ export function createPlayerStore(
     currentBarIndex,
     barCount,
     currentTempoBpm,
+    audioMode,
+    availableAudioModes,
+    syncMap,
     sections,
     currentSection,
     staveProfile,
@@ -548,6 +629,10 @@ export function createPlayerStore(
     loadScore(data) {
       error.value = null
       scoreLoaded.value = false
+      // Drop the previous song's recording before loading the next one, so a
+      // song switch can never leave the wrong audio attached. The caller
+      // re-attaches the new song's bundle once it has one.
+      if (audioSources.value !== null) store.setAudioSources(null, null)
       const ok = api.load(data)
       if (!ok) error.value = 'The file could not be read as a tab.'
     },
@@ -668,6 +753,43 @@ export function createPlayerStore(
       api.renderTracks(selected)
     },
 
+    setAudioSources(sources, map) {
+      audioSources.value = sources
+      syncMap.value = map
+      if (sources === null) {
+        // Nothing to play along to: fall back rather than leaving the player
+        // pointed at audio that no longer exists.
+        if (audioMode.value !== 'synth') store.setAudioMode('synth')
+        else refreshSyncPoints()
+        return
+      }
+      // Re-attach if we were already on the recording, so swapping songs does
+      // not silently keep the previous one's audio.
+      if (audioMode.value !== 'synth') {
+        attachExternalMedia(audioMode.value)
+      }
+      refreshSyncPoints()
+    },
+
+    setAudioMode(mode) {
+      if (!availableAudioModes.value.includes(mode)) return
+      if (mode === audioMode.value) return
+
+      const wasExternal = audioMode.value !== 'synth'
+      audioMode.value = mode
+
+      if (mode === 'synth') {
+        attachSynth()
+      } else if (wasExternal && externalMedia) {
+        // Already on the recording: this is only a change of which stems are
+        // audible, so do not rebuild the player and lose the position.
+        externalMedia.setMode(mode)
+      } else {
+        attachExternalMedia(mode)
+      }
+      refreshSyncPoints()
+    },
+
     setStaveProfile(profile) {
       if (staveProfile.value === profile) return
       staveProfile.value = profile
@@ -769,6 +891,8 @@ export function createPlayerStore(
     },
 
     destroy() {
+      externalMedia?.destroy()
+      externalMedia = null
       api.destroy()
     },
   }

@@ -108,6 +108,53 @@ export async function fetchReviewQueue(baseUrl: string): Promise<ReviewQueueResp
   return (await response.json()) as ReviewQueueResponse
 }
 
+// --- Manifest and blobs (Milestone 3: real-recording bundles) ---------------
+
+/** One audio bundle as /manifest reports it. snake_case mirrors the API. */
+export interface ManifestBundle {
+  id: string
+  backing_hash: string | null
+  /** Null until stem separation has run for this bundle. */
+  guitar_hash: string | null
+  duration_ms: number | null
+  sync_map: import('../core/types.ts').SyncMap | null
+  created_at: number
+}
+
+export interface ManifestSong {
+  song_id: string
+  fingerprint: string
+  match_status: string
+  confidence: number
+  bundles: ManifestBundle[]
+}
+
+export interface ManifestResponse {
+  songs: ManifestSong[]
+}
+
+/** GET /manifest. */
+export async function fetchManifest(baseUrl: string): Promise<ManifestResponse> {
+  const response = await fetch(`${normalizeUrl(baseUrl)}/manifest`)
+  if (!response.ok) {
+    throw new Error(`Failed to load the desktop manifest (${response.status}).`)
+  }
+  return (await response.json()) as ManifestResponse
+}
+
+/**
+ * GET /blob/{hash}. Returns the bytes so the caller can store them locally -
+ * audio is played from IndexedDB, never streamed from the desktop, because the
+ * whole point is that practice works with the desktop switched off.
+ */
+export async function fetchBlob(baseUrl: string, hash: string): Promise<Blob> {
+  const response = await fetch(`${normalizeUrl(baseUrl)}/blob/${encodeURIComponent(hash)}`)
+  if (!response.ok) {
+    throw new Error(`Failed to download ${hash.slice(0, 8)} (${response.status}).`)
+  }
+  return await response.blob()
+}
+
 export interface ReviewDecisionBody {
   fingerprint: string
   decision: 'confirm' | 'reject'

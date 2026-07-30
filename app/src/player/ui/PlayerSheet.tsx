@@ -12,10 +12,12 @@ import { DisplayControls } from './DisplayControls'
 import { NoteEditor } from './NoteEditor'
 import { MarkPassage } from '../../practice/ui/MarkPassage'
 import { Tuner } from '../../tuner/Tuner'
+import { AudioControls } from '../../audio/AudioControls'
 
-export type SheetPanel = 'loop' | 'tracks' | 'view' | 'mark' | 'tune' | 'note'
+export type SheetPanel = 'audio' | 'loop' | 'tracks' | 'view' | 'mark' | 'tune' | 'note'
 
 const TABS: { panel: SheetPanel; label: string }[] = [
+  { panel: 'audio', label: 'Audio' },
   { panel: 'loop', label: 'Loop' },
   { panel: 'tracks', label: 'Tracks' },
   { panel: 'view', label: 'View' },
@@ -32,6 +34,8 @@ export interface PlayerSheetProps {
   songId: string | null
   onSaveCorrections: () => void
   savingCorrections: boolean
+  /** Fetches this song's recording from the desktop; false if there is none. */
+  onDownloadBundle: () => Promise<boolean>
 }
 
 export function PlayerSheet({
@@ -42,6 +46,7 @@ export function PlayerSheet({
   songId,
   onSaveCorrections,
   savingCorrections,
+  onDownloadBundle,
 }: PlayerSheetProps) {
   // Escape closes, matching every other dismissible layer on the platform.
   useEffect(() => {
@@ -96,6 +101,9 @@ export function PlayerSheet({
         )}
 
         <div class="sheet__body">
+          {panel === 'audio' && (
+            <AudioControls store={store} songId={songId} onDownload={onDownloadBundle} />
+          )}
           {panel === 'loop' && <LoopControl store={store} />}
           {panel === 'tracks' && <TrackMixer store={store} />}
           {panel === 'view' && <DisplayControls store={store} />}

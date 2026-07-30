@@ -43,7 +43,11 @@ class Config:
     port: API port.
     demucs_segment_size: seconds per Demucs processing segment. Stored now so
         the schema and config surface are stable; not consumed until
-        Milestone 3 (stem separation).
+        stem separation is added.
+    audio_codec: "opus" (default, better per bit) or "aac". Opus rides in an Ogg
+        container that older iOS Safari cannot play; if a bundle refuses to play
+        on the phone, set this to "aac" and rebuild rather than editing code.
+    audio_bitrate_kbps: encode rate for bundle audio.
     """
 
     media_root: Path = field(default_factory=_default_media_root)
@@ -51,6 +55,8 @@ class Config:
     host: str = "127.0.0.1"
     port: int = 8765
     demucs_segment_size: int = 7
+    audio_codec: str = "opus"
+    audio_bitrate_kbps: int = 96
 
     @property
     def db_path(self) -> Path:

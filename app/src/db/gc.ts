@@ -18,7 +18,8 @@ async function collectReferencedHashes(db: Db): Promise<Set<string>> {
   const bundles = await db.getAll('audioBundles')
   for (const bundle of bundles) {
     referenced.add(bundle.backingBlobHash)
-    referenced.add(bundle.guitarBlobHash)
+    // Absent on a full-mix bundle, where separation has not run.
+    if (bundle.guitarBlobHash) referenced.add(bundle.guitarBlobHash)
   }
 
   const soundfontHash = await db.get('kv', 'soundfontHash')

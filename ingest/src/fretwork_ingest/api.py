@@ -125,16 +125,26 @@ def create_app(cfg: Config, allowed_origins: Sequence[str] | None = None) -> Fas
                         ),
                         "bundles": [],
                     }
-                for b in db.list_bundles_for_song(conn, song_id):
-                    songs[song_id]["bundles"].append(
-                        {
-                            "id": b["id"],
-                            "backing_hash": b["backing_path"],
-                            "guitar_hash": b["guitar_path"],
-                            "duration_ms": b["duration_ms"],
-                            "created_at": b["created_at"],
-                        }
-                    )
+                    # Filled once per song, not once per match: a song with
+                    # both an auto and a confirmed match would otherwise list
+                    # every bundle twice and the phone would download twice.
+                    for b in db.list_bundles_for_song(conn, song_id):
+                        songs[song_id]["bundles"].append(
+                            {
+                                "id": b["id"],
+                                "backing_hash": b["backing_path"],
+                                "guitar_hash": b["guitar_path"],
+                                "duration_ms": b["duration_ms"],
+                                # The phone needs this to place bars in the
+                                # audio; without it a bundle is unplayable.
+                                "sync_map": (
+                                    json.loads(b["sync_map_json"])
+                                    if b["sync_map_json"]
+                                    else None
+                                ),
+                                "created_at": b["created_at"],
+                            }
+                        )
         return {"songs": list(songs.values())}
 
     @app.get("/blob/{file_hash}")

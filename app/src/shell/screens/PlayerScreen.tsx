@@ -11,6 +11,12 @@ import { activeReview, endReview } from '../../practice/activeReview'
 import { ReviewBlock } from '../../practice/ui/ReviewBlock'
 import { navigate } from '../router'
 import { prefs, prefsLoaded, loadPrefs } from '../../settings/prefs'
+import {
+  downloadBundle,
+  loadLocalBundle,
+  resetDownloadState,
+  type LocalBundle,
+} from '../../audio/bundleStore'
 import { importTabFile } from '../../import/importFile'
 import { ACCEPT_ATTRIBUTE } from '../../import/format'
 import { requestedSongId, clearRequestedSong } from '../../library/openSong'
@@ -31,6 +37,10 @@ export function PlayerScreen() {
   const status = useSignal<string | null>(null)
   const saving = useSignal(false)
   const sheetPanel = useSignal<SheetPanel | null>(null)
+  // Object URLs for the loaded recording. Held in a ref so they can be revoked
+  // when the song changes: they pin the blob in memory until released.
+  const localBundleRef = useRef<LocalBundle | null>(null)
+  const bundleVersion = useSignal(0)
   // Library metadata for the loaded song. Many files embed no title of their
   // own, so the library's title is the better label when the score has none.
   const currentSong = useSignal<{ id: string; title: string; artist: string } | null>(null)
@@ -101,6 +111,50 @@ export function PlayerScreen() {
   // A review runs here rather than in the practice tab: put the player into
   // the state the scheduler asked for once the score is up. Keyed on
   // scoreLoaded too, because loading a score clears the loop.
+  // Attach whatever recording is stored for the loaded song. Runs after the
+  // score is up, because loadScore deliberately drops the previous song's audio.
+  const loadedSongId = currentSong.value?.id ?? null
+  const scoreReadyForAudio = storeRef.current?.scoreLoaded.value ?? false
+  useEffect(() => {
+    const store = storeRef.current
+    if (!store || !loadedSongId || !scoreReadyForAudio) return
+    let cancelled = false
+    void (async () => {
+      const local = await loadLocalBundle(loadedSongId)
+      if (cancelled) {
+        local?.release()
+        return
+      }
+      localBundleRef.current?.release()
+      localBundleRef.current = local
+      store.setAudioSources(local?.sources ?? null, local?.syncMap ?? null)
+      bundleVersion.value++
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [loadedSongId, scoreReadyForAudio, bundleVersion.value])
+
+  // Release the object URLs when the player goes away for good.
+  useEffect(
+    () => () => {
+      localBundleRef.current?.release()
+      localBundleRef.current = null
+    },
+    [],
+  )
+
+  async function fetchBundleFromDesktop(): Promise<boolean> {
+    const songId = currentSong.value?.id
+    if (!songId) return false
+    resetDownloadState()
+    const bundle = await downloadBundle(songId)
+    if (!bundle) return false
+    // Re-run the attach effect, which is what mints the object URLs.
+    bundleVersion.value++
+    return true
+  }
+
   // playerReady is in the dependencies as well as scoreLoaded because setting a
   // loop needs alphaTab's tick cache, which is only populated once the MIDI has
   // been generated. Keyed on scoreLoaded alone the loop silently fails to take.
@@ -312,6 +366,7 @@ export function PlayerScreen() {
           songId={song?.id ?? null}
           onSaveCorrections={saveCorrections}
           savingCorrections={saving.value}
+          onDownloadBundle={fetchBundleFromDesktop}
         />
       )}
 

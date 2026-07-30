@@ -50,7 +50,11 @@ export async function sweepForEvictions(): Promise<IntegrityReport> {
   const [songs, bundles] = await Promise.all([listSongs(db), listAudioBundles(db)])
 
   const tabHashes = songs.map((s) => s.tabBlobHash)
-  const audioHashes = bundles.flatMap((b) => [b.backingBlobHash, b.guitarBlobHash])
+  // A full-mix bundle has no guitar stem, so filter rather than sweeping for a
+  // hash that was never meant to exist and reporting it as evicted.
+  const audioHashes = bundles.flatMap((b) =>
+    b.guitarBlobHash ? [b.backingBlobHash, b.guitarBlobHash] : [b.backingBlobHash],
+  )
 
   const [missingTabs, missingAudio] = await Promise.all([
     missingHashes(db, tabHashes),
@@ -65,7 +69,9 @@ export async function sweepForEvictions(): Promise<IntegrityReport> {
 
   const evictedBundles = bundles
     .filter(
-      (b) => missingAudioSet.has(b.backingBlobHash) || missingAudioSet.has(b.guitarBlobHash),
+      (b) =>
+        missingAudioSet.has(b.backingBlobHash) ||
+        (b.guitarBlobHash !== undefined && missingAudioSet.has(b.guitarBlobHash)),
     )
     .map((b) => ({ id: b.id, songId: b.songId }))
 

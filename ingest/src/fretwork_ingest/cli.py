@@ -6,6 +6,8 @@ Usage (from the ingest/ directory, using the venv interpreter directly):
     .venv\\Scripts\\python.exe -m fretwork_ingest.cli scan --root "D:\\Music"
     .venv\\Scripts\\python.exe -m fretwork_ingest.cli serve --host 0.0.0.0 --port 8765
     .venv\\Scripts\\python.exe -m fretwork_ingest.cli report
+    .venv\\Scripts\\python.exe -m fretwork_ingest.cli bundle --song-id <id> \\
+        --fingerprint <sha>
 """
 
 from __future__ import annotations
@@ -16,6 +18,9 @@ from pathlib import Path
 
 from . import __version__, db
 from .api import create_app
+from .audio import AudioToolError
+from .blobstore import BlobStore
+from .bundle import build_full_mix_bundle
 from .config import Config
 from .scan import scan_media
 
@@ -110,6 +115,52 @@ def _cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_bundle(args: argparse.Namespace) -> int:
+    """Encode a matched recording into a playable bundle for one song."""
+    cfg = Config.load()
+    cfg.ensure_dirs()
+    db.init_db(cfg.db_path)
+    conn = db.get_connection(cfg.db_path)
+    try:
+        source = db.get_source_audio(conn, args.fingerprint)
+        if source is None:
+            print(
+                f"no scanned audio with fingerprint {args.fingerprint}; run scan first",
+                file=sys.stderr,
+            )
+            return 1
+        if source["drm_protected"]:
+            print("that file is DRM protected and cannot be decoded", file=sys.stderr)
+            return 1
+
+        try:
+            built = build_full_mix_bundle(
+                conn,
+                BlobStore(cfg.blob_dir),
+                song_id=args.song_id,
+                fingerprint=args.fingerprint,
+                source_path=Path(source["path"]),
+                work_dir=cfg.data_dir / "work",
+                codec=cfg.audio_codec,
+                bitrate_kbps=cfg.audio_bitrate_kbps,
+            )
+        except (AudioToolError, FileNotFoundError) as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+    finally:
+        conn.close()
+
+    seconds = built.duration_ms / 1000
+    lead_in = built.sync_map["points"][0]["audioMs"]
+    print(f"bundle {built.bundle_id}")
+    print(f"  song      {built.song_id}")
+    print(f"  backing   {built.backing_hash}")
+    print(f"  duration  {seconds:.1f}s")
+    print(f"  lead-in   {lead_in} ms")
+    print(f"  sync      {built.sync_map['status']} (start aligned, tempo unverified)")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fretwork_ingest", description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -130,6 +181,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     init_db_parser = subparsers.add_parser("init-db", help="create the database schema if absent")
     init_db_parser.set_defaults(func=_cmd_init_db)
+
+    bundle_parser = subparsers.add_parser(
+        "bundle", help="encode a matched recording into a playable audio bundle"
+    )
+    bundle_parser.add_argument(
+        "--song-id", type=str, required=True, help="the PWA song id to attach the bundle to"
+    )
+    bundle_parser.add_argument(
+        "--fingerprint", type=str, required=True, help="fingerprint of the scanned source audio"
+    )
+    bundle_parser.set_defaults(func=_cmd_bundle)
 
     return parser
 
