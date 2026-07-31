@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   GPROTAB_ORIGIN,
   filenameFromContentDisposition,
+  parseDetailSignals,
   parseSearchHtml,
 } from '../gprotabParse.ts'
 
@@ -63,7 +64,24 @@ describe('parseSearchHtml', () => {
     const [result] = parseSearchHtml(html)
 
     expect(result.artist).toBe('Pink Floyd')
-    expect(result.title).toBe('Time (Live In Pompeii)')
+    expect(result.title).toBe('Time')
+    expect(result.version).toBe('Live In Pompeii')
+  })
+
+  it('splits gprotab version markers out of the title so versions can be grouped', () => {
+    const html = `
+      ${anchorPair('/en/tabs/metallica', 'Metallica', '/en/tabs/metallica/master-of-puppets', 'Master of puppets')}
+      ${anchorPair('/en/tabs/metallica', 'Metallica', '/en/tabs/metallica/master-of-puppets-10', 'Master of puppets 10')}
+      ${anchorPair('/en/tabs/weezer', 'Weezer', '/en/tabs/weezer/no-way-(solo)', 'No Way (Solo)')}
+    `
+
+    const results = parseSearchHtml(html)
+
+    expect(results.map((r) => [r.title, r.version])).toEqual([
+      ['Master of puppets', undefined],
+      ['Master of puppets', '10'],
+      ['No Way', 'Solo'],
+    ])
   })
 
   it('skips an artist anchor with no following song anchor', () => {
@@ -96,6 +114,49 @@ describe('parseSearchHtml', () => {
     const html = '<html><body><p>No tabs found.</p></body></html>'
 
     expect(parseSearchHtml(html)).toEqual([])
+  })
+})
+
+describe('parseDetailSignals', () => {
+  // Trimmed from the real /en/tabs/metallica/master-of-puppets page.
+  const detailHtml = `
+    <div class="tab-data">
+      <table>
+        <tr><td>Band</td><td><a href="/en/tabs/metallica">Metallica</td></tr>
+        <tr><td>Song</td><td>Master of puppets</td></tr>
+        <tr><td>Tab file type</td><td>gp3</td></tr>
+        <tr><td>File size</td><td>~87.3 kb</td></tr>
+        <tr><td>Times downloaded</td><td>13076</td></tr>
+        <tr><td>Rating</td><td><strong>5/5</strong> - <u>6 votes</u></td></tr>
+      </table>
+    </div>
+    <script type="application/ld+json">
+      {"aggregateRating":{"@type":"AggregateRating","ratingCount":6,"ratingValue":5}}
+    </script>
+  `
+
+  it('reads downloads, format, size and rating off a tab page', () => {
+    expect(parseDetailSignals(detailHtml)).toEqual({
+      downloads: 13076,
+      format: 'gp3',
+      sizeBytes: Math.round(87.3 * 1024),
+      ratingValue: 5,
+      ratingVotes: 6,
+    })
+  })
+
+  it('omits the rating when nothing has voted rather than reporting a 0/5', () => {
+    const unrated = detailHtml.replace('"ratingCount":6', '"ratingCount":0')
+
+    const signals = parseDetailSignals(unrated)
+
+    expect(signals.ratingValue).toBeUndefined()
+    expect(signals.ratingVotes).toBeUndefined()
+    expect(signals.downloads).toBe(13076)
+  })
+
+  it('returns an empty object for a page with no data table', () => {
+    expect(parseDetailSignals('<html><body>gone</body></html>')).toEqual({})
   })
 })
 

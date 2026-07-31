@@ -4,16 +4,42 @@
 // Browsers cannot call the archives directly (no CORS headers), so remote
 // sources are reached through this app's own serverless proxy at /api/tabs/*.
 
-export type TabSourceId = 'gprotab' | 'file'
+export type TabSourceId = 'gprotab' | 'guitarprotabs' | 'file'
+
+/**
+ * Everything a source tells us about a tab's quality before we download it.
+ * All optional: sources expose different subsets, and a source that is up but
+ * missing a field must not look like a source that is down.
+ */
+export interface TabQualitySignals {
+  /** Times the file has been downloaded from that source. */
+  downloads?: number
+  /** Mean user rating, on the source's own scale (both current sources use 0-5). */
+  ratingValue?: number
+  /** Number of votes behind `ratingValue`. A 5/5 from 1 vote is not a 5/5. */
+  ratingVotes?: number
+  /** Declared file format, lowercased and without the dot: 'gp3', 'gp4', 'gp5'. */
+  format?: string
+  /** Declared file size. Sources quote kilobytes; we store bytes. */
+  sizeBytes?: number
+}
 
 export interface TabSearchResult {
   sourceId: TabSourceId
-  /** Stable identifier within the source. For gprotab, the site path. */
+  /** Stable identifier within the source. For both archives, the site path. */
   externalId: string
   title: string
   artist: string
   /** Absolute page URL, kept for attribution and manual checking. */
   url: string
+  /**
+   * The disambiguator this source appends to distinguish one transcription of
+   * a song from another - "2", "S&M", "Live", "Solo". Empty for the version a
+   * source treats as primary. Extracted by the source's parser rather than
+   * left inside `title`, so that grouping can match versions of one song.
+   */
+  version?: string
+  signals?: TabQualitySignals
 }
 
 export interface FetchedTab {

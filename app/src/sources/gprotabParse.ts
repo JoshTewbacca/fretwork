@@ -5,7 +5,8 @@
 // small pieces they need, since app/tsconfig.app.json only covers src/ and
 // api/ must remain independently compilable - see the note in those files).
 
-import type { TabSearchResult } from './types.ts'
+import type { TabQualitySignals, TabSearchResult } from './types.ts'
+import { splitVersion } from './versionSplit.ts'
 
 /** Origin of the upstream tab archive this source scrapes. */
 export const GPROTAB_ORIGIN = 'https://gprotab.net'
@@ -68,16 +69,58 @@ export function parseSearchHtml(html: string): TabSearchResult[] {
     }
     seen.add(externalId)
 
+    const { base, version } = splitVersion(cleanName(songHtml))
     results.push({
       sourceId: 'gprotab',
       externalId,
-      title: cleanName(songHtml),
+      title: base,
       artist: cleanName(artistHtml),
       url: GPROTAB_ORIGIN + externalId,
+      ...(version === undefined ? {} : { version }),
     })
   }
 
   return results
+}
+
+/**
+ * Parses the quality signals off a gprotab tab detail page. gprotab puts none
+ * of this on the search results page, so reaching it costs one extra request
+ * per result - see the enrichment step in app/api/tabs/search.ts.
+ *
+ * The rating is read from the page's JSON-LD `aggregateRating` rather than the
+ * rendered stars, because the markup is a row of styled divs with no text.
+ */
+export function parseDetailSignals(html: string): TabQualitySignals {
+  const signals: TabQualitySignals = {}
+
+  const downloads = /Times downloaded<\/td>\s*<td>\s*([\d\s,]+?)\s*<\/td>/i.exec(html)
+  if (downloads) {
+    const value = Number.parseInt(downloads[1].replace(/[\s,]/g, ''), 10)
+    if (!Number.isNaN(value)) signals.downloads = value
+  }
+
+  const format = /Tab file type<\/td>\s*<td>\s*([A-Za-z0-9]+)\s*<\/td>/i.exec(html)
+  if (format) signals.format = format[1].toLowerCase()
+
+  const size = /File size<\/td>\s*<td>\s*~?\s*([\d.]+)\s*kb\s*<\/td>/i.exec(html)
+  if (size) {
+    const kb = Number.parseFloat(size[1])
+    if (!Number.isNaN(kb)) signals.sizeBytes = Math.round(kb * 1024)
+  }
+
+  const ratingValue = /"ratingValue"\s*:\s*([\d.]+)/.exec(html)
+  const ratingCount = /"ratingCount"\s*:\s*(\d+)/.exec(html)
+  if (ratingValue && ratingCount) {
+    const value = Number.parseFloat(ratingValue[1])
+    const votes = Number.parseInt(ratingCount[1], 10)
+    if (!Number.isNaN(value) && !Number.isNaN(votes) && votes > 0) {
+      signals.ratingValue = value
+      signals.ratingVotes = votes
+    }
+  }
+
+  return signals
 }
 
 /**

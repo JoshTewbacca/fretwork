@@ -1,6 +1,7 @@
 import * as searchStore from '../../search/searchStore.ts'
+import type { SongGroup } from '../../search/grouping.ts'
 import { addSearchResultToLibrary } from '../../search/addFromSource.ts'
-import { gprotabSource } from '../../sources/gprotabSource.ts'
+import { getTabSource } from '../../sources/index.ts'
 import type { TabSearchResult } from '../../sources/types.ts'
 import { openSong } from '../../library/openSong.ts'
 import '../screens/screens.css'
@@ -10,7 +11,11 @@ async function onAdd(result: TabSearchResult): Promise<void> {
   searchStore.addingId.value = result.externalId
   searchStore.addErrorMessage.value = ''
   try {
-    const song = await addSearchResultToLibrary(gprotabSource, result)
+    const source = getTabSource(result.sourceId)
+    if (!source) {
+      throw new Error('That tab came from a source this build no longer supports.')
+    }
+    const song = await addSearchResultToLibrary(source, result)
     openSong(song.id)
   } catch (err) {
     searchStore.addErrorMessage.value =
@@ -20,9 +25,109 @@ async function onAdd(result: TabSearchResult): Promise<void> {
   }
 }
 
+/**
+ * The line under a version: what we know about it, worst case just the source.
+ * Download counts are the reason the second source was added, so they lead.
+ */
+function versionFacts(result: TabSearchResult): string {
+  const source = getTabSource(result.sourceId)
+  const facts: string[] = []
+
+  const downloads = result.signals?.downloads
+  if (downloads !== undefined) {
+    facts.push(`${downloads.toLocaleString()} downloads`)
+  }
+
+  const votes = result.signals?.ratingVotes
+  const rating = result.signals?.ratingValue
+  if (rating !== undefined && votes !== undefined) {
+    facts.push(`${rating}/5 from ${votes} ${votes === 1 ? 'vote' : 'votes'}`)
+  }
+
+  if (result.signals?.format !== undefined) {
+    facts.push(result.signals.format)
+  }
+
+  if (source) facts.push(source.label)
+  return facts.join(' · ')
+}
+
+function versionLabel(result: TabSearchResult): string {
+  if (result.version === undefined) return 'Version 1'
+  return /^\d+$/.test(result.version) ? `Version ${result.version}` : result.version
+}
+
+function VersionRow({ result }: { result: TabSearchResult }) {
+  const isAdding = searchStore.addingId.value === result.externalId
+  return (
+    <li class="search-version">
+      <div class="search-version__text">
+        <div class="search-version__label">{versionLabel(result)}</div>
+        <div class="search-version__facts">{versionFacts(result)}</div>
+      </div>
+      <button
+        type="button"
+        class="btn btn--small search-row__add"
+        disabled={isAdding}
+        onClick={() => void onAdd(result)}
+      >
+        {isAdding ? 'Adding…' : 'Add'}
+      </button>
+    </li>
+  )
+}
+
+function GroupCard({ group }: { group: SongGroup }) {
+  const [best, ...rest] = group.versions
+  const isAdding = searchStore.addingId.value === best.externalId
+  const isExpanded = searchStore.expandedGroups.value.has(group.key)
+
+  return (
+    <li class="card">
+      <div class="card__top">
+        <div class="card__text">
+          <div class="card__title">{group.title}</div>
+          <div class="card__sub">{group.artist}</div>
+          <div class="card__sub search-best__facts">{versionFacts(best)}</div>
+        </div>
+        <button
+          type="button"
+          class="btn btn--small search-row__add"
+          disabled={isAdding}
+          onClick={() => void onAdd(best)}
+        >
+          {isAdding ? 'Adding…' : 'Add'}
+        </button>
+      </div>
+
+      {rest.length > 0 && (
+        <>
+          <button
+            type="button"
+            class="search-versions__toggle"
+            aria-expanded={isExpanded}
+            onClick={() => searchStore.toggleGroup(group.key)}
+          >
+            {isExpanded
+              ? 'Hide other versions'
+              : `${rest.length} other ${rest.length === 1 ? 'version' : 'versions'}`}
+          </button>
+          {isExpanded && (
+            <ul class="search-versions">
+              {rest.map((result) => (
+                <VersionRow key={`${result.sourceId}:${result.externalId}`} result={result} />
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </li>
+  )
+}
+
 export function SearchScreen() {
   const state = searchStore.state.value
-  const results = searchStore.results.value
+  const groups = searchStore.groups.value
 
   function onSubmit(e: Event) {
     e.preventDefault()
@@ -81,41 +186,26 @@ export function SearchScreen() {
         </div>
       )}
 
-      {state === 'done' && results.length === 0 && (
+      {state === 'done' && groups.length === 0 && (
         <div class="screen-placeholder">
           <p>No tabs found for that search.</p>
         </div>
       )}
 
-      {state === 'done' && results.length > 0 && (
+      {state === 'done' && groups.length > 0 && (
         <>
+          {searchStore.partialWarning.value && (
+            <p class="search-partial">{searchStore.partialWarning.value}</p>
+          )}
           <ul class="search-results">
-            {results.map((result) => {
-              const isAdding = searchStore.addingId.value === result.externalId
-              return (
-                <li key={result.externalId} class="card">
-                  <div class="card__top">
-                    <div class="card__text">
-                      <div class="card__title">{result.title}</div>
-                      <div class="card__sub">{result.artist}</div>
-                    </div>
-                    <button
-                      type="button"
-                      class="btn btn--small search-row__add"
-                      disabled={isAdding}
-                      onClick={() => void onAdd(result)}
-                    >
-                      {isAdding ? 'Adding…' : 'Add'}
-                    </button>
-                  </div>
-                </li>
-              )
-            })}
+            {groups.map((group) => (
+              <GroupCard key={group.key} group={group} />
+            ))}
           </ul>
           {searchStore.addErrorMessage.value && (
             <p class="search-add-error">{searchStore.addErrorMessage.value}</p>
           )}
-          <p class="search-attribution">Results from gprotab.net</p>
+          <p class="search-attribution">Results from gprotab.net and guitarprotabs.org</p>
         </>
       )}
     </div>

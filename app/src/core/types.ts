@@ -2,7 +2,13 @@
 // Changes here must be reflected there and vice versa.
 
 export type TabFormat = 'gp3' | 'gp4' | 'gp5' | 'gpx' | 'gp' | 'musicxml'
-export type SourceId = 'songsterr' | 'gprotab' | 'gtptabs' | 'file' | 'musescore'
+export type SourceId =
+  | 'songsterr'
+  | 'gprotab'
+  | 'guitarprotabs'
+  | 'gtptabs'
+  | 'file'
+  | 'musescore'
 export type PlayMode = 'synth' | 'real-backing' | 'real-full' | 'guitar-only'
 
 export interface Song {
