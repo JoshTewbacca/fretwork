@@ -177,6 +177,14 @@ The desktop HTTP API (LAN / Tailscale) serves:
 `POST /events/backup` (append-only practice-event mirror), `GET /events/since/{id}`.
 No auth beyond being on the LAN/tailnet in v1; it binds to the tailnet/LAN interface only.
 
+**Pending change — desktop `songs` table and catalogue sync.**
+[ADR-006](adr/ADR-006-library-ownership-and-sync.md) adds a `songs` table to the desktop
+schema, a `'purchased'` member to `Song.source.sourceId`, and four endpoints
+(`GET /library`, `POST /blob`, `POST /songs`, `DELETE /songs/{id}`), deprecating
+`GET /manifest` in place rather than changing its shape. The schema and field-ownership
+rules are specified in that ADR; this document is updated to match when the code lands, so
+that until then it continues to describe what the desktop actually stores.
+
 ## Why not SQLite/WASM on the phone
 
 The brief allows it if justified; it is not justified. Every query pattern above is key

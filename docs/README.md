@@ -12,3 +12,11 @@ Produced per FABLE_PROMPT.md §10. Status: approved by the owner on 2026-07-27; 
    - [ADR-005 where TabSource implementations live](adr/ADR-005-tabsource-placement.md)
 4. [02-delegation-map.md](02-delegation-map.md) — what goes to Sonnet, with spec skeletons
 5. [03-alphatab-notes.md](03-alphatab-notes.md) — alphaTab 1.8.4 API verified against live docs
+
+## Later design work
+
+Raised after the original review, during implementation.
+
+- [04-library-manager.md](04-library-manager.md) — desktop app for purchased tabs and audio
+- [ADR-006 library ownership and desktop sync](adr/ADR-006-library-ownership-and-sync.md) —
+  which side owns which field, and why ADR-003's disaster-recovery path cannot currently run
