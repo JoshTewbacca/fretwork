@@ -155,6 +155,93 @@ export async function fetchBlob(baseUrl: string, hash: string): Promise<Blob> {
   return await response.blob()
 }
 
+// --- The catalogue (ADR-006) ------------------------------------------------
+// /library, not /manifest: the manifest reports one entry per matched
+// recording, so a song without audio never appears in it, and a song without
+// audio is the normal case.
+
+/** One catalogue row as /library reports it. snake_case mirrors the API. */
+export interface LibrarySong {
+  id: string
+  title: string
+  artist: string
+  album: string | null
+  source: { source_id: string; external_id: string | null; url: string | null }
+  tab_blob_hash: string
+  tab_format: string
+  default_track_index: number | null
+  target_tempo_bpm: number | null
+  archived: boolean
+  added_at: number
+  updated_at: number
+  bundles: ManifestBundle[]
+}
+
+export interface LibraryResponse {
+  version: number
+  songs: LibrarySong[]
+}
+
+/** GET /library. */
+export async function fetchLibrary(baseUrl: string): Promise<LibraryResponse> {
+  const response = await fetch(`${normalizeUrl(baseUrl)}/library`)
+  if (!response.ok) {
+    throw new Error(`Failed to load the desktop library (${response.status}).`)
+  }
+  return (await response.json()) as LibraryResponse
+}
+
+/**
+ * POST /blob. Returns the hash the desktop computed for the bytes it received,
+ * which the caller should treat as authoritative rather than assuming it
+ * matches a locally computed one.
+ */
+export async function uploadBlob(baseUrl: string, bytes: Blob): Promise<string> {
+  const response = await fetch(`${normalizeUrl(baseUrl)}/blob`, {
+    method: 'POST',
+    body: bytes,
+  })
+  if (!response.ok) {
+    throw new Error(`Failed to upload a file to the desktop (${response.status}).`)
+  }
+  return ((await response.json()) as { hash: string }).hash
+}
+
+/** The desktop-owned fields of a song, as POST /songs accepts them. */
+export interface SongUploadBody {
+  id: string
+  title: string
+  artist: string
+  album: string | null
+  source_id: string
+  source_external_id: string | null
+  source_url: string | null
+  tab_blob_hash: string
+  tab_format: string
+  default_track_index: number | null
+  target_tempo_bpm: number | null
+  added_at: number
+}
+
+/** POST /songs. */
+export async function pushSong(baseUrl: string, body: SongUploadBody): Promise<void> {
+  const response = await fetch(`${normalizeUrl(baseUrl)}/songs`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!response.ok) {
+    let detail = `(${response.status})`
+    try {
+      const body = (await response.json()) as { detail?: unknown }
+      if (typeof body.detail === 'string') detail = body.detail
+    } catch {
+      // Keep the status code; a body we cannot parse is not worth a second error.
+    }
+    throw new Error(`The desktop rejected this song: ${detail}`)
+  }
+}
+
 export interface ReviewDecisionBody {
   fingerprint: string
   decision: 'confirm' | 'reject'

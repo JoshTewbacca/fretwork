@@ -7,8 +7,10 @@ import { MAX_ZOOM_PCT, MIN_ZOOM_PCT } from '../../player/core/zoom.ts'
 import { loadPrefs, prefs, prefsLoaded, setPrefs } from '../../settings/prefs.ts'
 import { getDb } from '../../db/open.ts'
 import { getDesktopConfig, setDesktopConfig, candidateUrls } from '../../desktop/config.ts'
-import { checkHealth, isMixedContentBlocked } from '../../desktop/client.ts'
+import { checkHealth, isMixedContentBlocked, resolveDesktop } from '../../desktop/client.ts'
 import { probe } from '../../desktop/status.ts'
+import { syncLibrary } from '../../library/sync.ts'
+import { refresh as refreshLibrary } from '../../library/libraryStore.ts'
 import { ReviewQueue } from '../../review/ReviewQueue.tsx'
 import { getStorageEstimate } from '../../pwa/persistence.ts'
 import InstallHelp from '../../pwa/InstallHelp.tsx'
@@ -165,6 +167,93 @@ function DesktopConnectionSection() {
 }
 
 /**
+ * Library sync (ADR-006). Manual rather than automatic in v1: the first run
+ * uploads every song this phone holds, which is not something to do silently
+ * on a metered connection the first time the desktop happens to answer.
+ */
+function LibrarySyncSection() {
+  const [state, setState] = useState<'idle' | 'syncing' | 'done' | 'error'>('idle')
+  const [message, setMessage] = useState('')
+
+  async function handleSync() {
+    setState('syncing')
+    setMessage('')
+    try {
+      const db = await getDb()
+      const config = await getDesktopConfig(db)
+      const baseUrl = await resolveDesktop(config)
+      if (!baseUrl) {
+        setState('error')
+        setMessage('Could not reach the desktop. Check the addresses above.')
+        return
+      }
+
+      const { pull, push } = await syncLibrary(baseUrl)
+      await refreshLibrary()
+
+      const parts: string[] = []
+      if (push.pushed) parts.push(`${push.pushed} sent to the desktop`)
+      if (pull.added) parts.push(`${pull.added} added`)
+      if (pull.updated) parts.push(`${pull.updated} updated`)
+      if (!parts.length) parts.push('Already up to date')
+
+      const problems: string[] = []
+      if (push.skippedNoBlob.length) {
+        problems.push(
+          `${push.skippedNoBlob.length} could not be sent because the tab file is not on this phone`,
+        )
+      }
+      if (pull.tabsMissing.length) {
+        problems.push(`${pull.tabsMissing.length} tab file(s) did not download`)
+      }
+      if (push.rejected.length) {
+        problems.push(`${push.rejected.length} rejected by the desktop`)
+      }
+
+      setState('done')
+      setMessage(
+        problems.length ? `${parts.join(', ')}. ${problems.join('. ')}.` : `${parts.join(', ')}.`,
+      )
+    } catch (err) {
+      setState('error')
+      setMessage(err instanceof Error ? err.message : 'The library sync failed.')
+    }
+  }
+
+  return (
+    <div class="settings-section">
+      <h3 class="h-sec">Library sync</h3>
+      <p class="settings-section__hint">
+        Sends any song the desktop does not have, then brings down everything it does. The desktop
+        holds the catalogue; this phone keeps your favourites, tags, track choice and any
+        corrections, and a sync never overwrites them.
+      </p>
+      <p class="settings-section__hint">
+        Removing a song on the desktop hides it here but keeps its practice history, so re-adding
+        it later picks up where you left off.
+      </p>
+
+      <div class="settings-actions">
+        <button
+          type="button"
+          class="button button--primary"
+          disabled={state === 'syncing'}
+          onClick={() => void handleSync()}
+        >
+          {state === 'syncing' ? 'Syncing...' : 'Sync library'}
+        </button>
+        {state === 'done' && (
+          <span class="settings-actions__result settings-actions__result--ok">{message}</span>
+        )}
+        {state === 'error' && (
+          <span class="settings-actions__result settings-actions__result--error">{message}</span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/**
  * How tab is read. These are app-wide defaults; the player's View sheet can
  * override any of them for the song in hand without changing what is stored
  * here, so a one-off look at the notation does not become the new default.
@@ -289,6 +378,7 @@ export function SettingsScreen() {
       <StorageSection />
 
       <DesktopConnectionSection />
+      <LibrarySyncSection />
 
       <div class="settings-section">
         <h3 class="h-sec">Ingest review</h3>

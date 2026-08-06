@@ -51,7 +51,9 @@ function sortSongs(list: Song[], by: SortBy): Song[] {
 /** Songs after applying the text query and favourites filter, then sortBy. */
 export const visibleSongs = computed(() => {
   const q = query.value.trim().toLowerCase()
-  let list = songs.value
+  // Archived songs stay in `songs` so the practice log can still resolve their
+  // titles, and are filtered out of every list the user browses (ADR-006).
+  let list = songs.value.filter((song) => !song.archived)
 
   if (favouritesOnly.value) {
     list = list.filter((song) => song.favourite)

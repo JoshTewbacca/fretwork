@@ -30,6 +30,12 @@ export interface Song {
   tags: string[]
   addedAt: number
   lastPlayedAt?: number
+  /**
+   * Removed on the desktop (ADR-006). The row is kept rather than deleted so
+   * passages, review state and the practice log can still resolve the song's
+   * name; the library hides it. Absent means not archived.
+   */
+  archived?: boolean
 }
 
 export interface SyncAnchor {
