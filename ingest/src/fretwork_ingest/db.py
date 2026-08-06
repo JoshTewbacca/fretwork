@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 _SCHEMA_STATEMENTS = [
     """
@@ -88,8 +88,36 @@ _SCHEMA_STATEMENTS = [
         payload_json TEXT NOT NULL
     )
     """,
+    # Schema version 2, per docs/adr/ADR-006-library-ownership-and-sync.md: the
+    # desktop gains a catalogue. Before this the desktop knew a song only as an
+    # id borrowed from a match row, which is why /manifest could not describe a
+    # library and ADR-003's rebuild-after-eviction path could not run.
+    #
+    # Only the fields the desktop owns are here. favourite, tags, lastPlayedAt
+    # and the correction hashes are deliberately absent rather than nullable:
+    # a column the desktop can write is a column a sync can overwrite, and the
+    # ADR's ownership table says those belong to the phone.
+    """
+    CREATE TABLE IF NOT EXISTS songs (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        artist TEXT NOT NULL,
+        album TEXT,
+        source_id TEXT NOT NULL,
+        source_external_id TEXT,
+        source_url TEXT,
+        tab_blob_hash TEXT NOT NULL,
+        tab_format TEXT NOT NULL,
+        default_track_index INTEGER,
+        target_tempo_bpm INTEGER,
+        archived INTEGER NOT NULL DEFAULT 0,
+        added_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+    )
+    """,
     "CREATE INDEX IF NOT EXISTS idx_events_ts ON events (ts)",
     "CREATE INDEX IF NOT EXISTS idx_matches_status ON matches (status)",
+    "CREATE INDEX IF NOT EXISTS idx_songs_updated_at ON songs (updated_at)",
 ]
 
 
@@ -103,7 +131,18 @@ def get_connection(path: Path) -> sqlite3.Connection:
 
 
 def init_db(path: Path) -> None:
-    """Create the schema if absent. Safe to call repeatedly (idempotent)."""
+    """Create the schema if absent. Safe to call repeatedly (idempotent).
+
+    Every statement is CREATE ... IF NOT EXISTS and this runs on every start,
+    so a database written by an older version gains new tables in place with
+    no data loss and no migration machinery. That holds only for additive
+    changes; a change that alters or drops a column will need real migrations
+    and this function is where that would go.
+
+    The recorded version is also advanced, which it previously was not: the
+    row was inserted once and never updated, so a database created at version
+    1 would keep reporting 1 no matter how far the schema moved on.
+    """
     conn = get_connection(path)
     try:
         with conn:
@@ -114,6 +153,10 @@ def init_db(path: Path) -> None:
                 conn.execute(
                     "INSERT INTO schema_version (version) VALUES (?)",
                     (SCHEMA_VERSION,),
+                )
+            elif row["version"] < SCHEMA_VERSION:
+                conn.execute(
+                    "UPDATE schema_version SET version = ?", (SCHEMA_VERSION,)
                 )
     finally:
         conn.close()
@@ -314,6 +357,99 @@ def list_bundles_for_song(conn: sqlite3.Connection, song_id: str) -> list[sqlite
     return conn.execute(
         "SELECT * FROM bundles WHERE song_id = ? ORDER BY created_at DESC", (song_id,)
     ).fetchall()
+
+
+# --- songs -------------------------------------------------------------------
+
+
+def upsert_song(
+    conn: sqlite3.Connection,
+    song_id: str,
+    title: str,
+    artist: str,
+    album: Optional[str],
+    source_id: str,
+    source_external_id: Optional[str],
+    source_url: Optional[str],
+    tab_blob_hash: str,
+    tab_format: str,
+    default_track_index: Optional[int],
+    target_tempo_bpm: Optional[int],
+    added_at: int,
+    updated_at: int,
+) -> None:
+    """Insert or update one catalogue row.
+
+    added_at is preserved on update: it records when the song entered the
+    library, which the one-time migration from the phone carries across so
+    that a pushed library does not all claim to have been added the day it
+    was pushed. updated_at always advances -- it is what drives sync.
+
+    An update also clears `archived`, because the only thing that calls this
+    is a deliberate add, and re-adding a song you previously removed should
+    bring it back rather than silently write to a row the phone still hides.
+    """
+    with conn:
+        conn.execute(
+            """
+            INSERT INTO songs
+                (id, title, artist, album, source_id, source_external_id,
+                 source_url, tab_blob_hash, tab_format, default_track_index,
+                 target_tempo_bpm, archived, added_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                title = excluded.title,
+                artist = excluded.artist,
+                album = excluded.album,
+                source_id = excluded.source_id,
+                source_external_id = excluded.source_external_id,
+                source_url = excluded.source_url,
+                tab_blob_hash = excluded.tab_blob_hash,
+                tab_format = excluded.tab_format,
+                default_track_index = excluded.default_track_index,
+                target_tempo_bpm = excluded.target_tempo_bpm,
+                archived = 0,
+                updated_at = excluded.updated_at
+            """,
+            (
+                song_id,
+                title,
+                artist,
+                album,
+                source_id,
+                source_external_id,
+                source_url,
+                tab_blob_hash,
+                tab_format,
+                default_track_index,
+                target_tempo_bpm,
+                added_at,
+                updated_at,
+            ),
+        )
+
+
+def get_song(conn: sqlite3.Connection, song_id: str) -> Optional[sqlite3.Row]:
+    return conn.execute("SELECT * FROM songs WHERE id = ?", (song_id,)).fetchone()
+
+
+def list_songs(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    """Every catalogue row, archived ones included.
+
+    Archived songs stay in the response on purpose (ADR-006): the phone hides
+    them but keeps their passages and events, and a song that vanished from
+    the payload entirely would look to the phone exactly like one that had
+    never existed.
+    """
+    return conn.execute("SELECT * FROM songs ORDER BY artist, title").fetchall()
+
+
+def set_song_archived(conn: sqlite3.Connection, song_id: str, archived: bool, updated_at: int) -> None:
+    with conn:
+        conn.execute(
+            "UPDATE songs SET archived = ?, updated_at = ? WHERE id = ?",
+            (1 if archived else 0, updated_at, song_id),
+        )
 
 
 # --- events ------------------------------------------------------------------

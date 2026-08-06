@@ -9,6 +9,8 @@ export type SourceId =
   | 'gtptabs'
   | 'file'
   | 'musescore'
+  /** A file bought from a store and added on the desktop (ADR-006). */
+  | 'purchased'
 export type PlayMode = 'synth' | 'real-backing' | 'real-full' | 'guitar-only'
 
 export interface Song {

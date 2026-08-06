@@ -24,7 +24,8 @@ interface Song {
   title: string;
   artist: string;
   album?: string;
-  source: { sourceId: 'songsterr' | 'gprotab' | 'gtptabs' | 'file' | 'musescore';
+  source: { sourceId: 'songsterr' | 'gprotab' | 'guitarprotabs' | 'gtptabs' | 'file'
+                    | 'musescore' | 'purchased';   // 'purchased': a bought file, ADR-006
             externalId?: string; url?: string };
   tabBlobHash: string;            // original fetched .gp/.gpx/MusicXML file
   tabFormat: 'gp3'|'gp4'|'gp5'|'gpx'|'gp'|'musicxml';
@@ -169,6 +170,24 @@ CREATE TABLE bundles (
   backing_path TEXT, guitar_path TEXT, duration_ms INTEGER,
   sync_map_json TEXT, created_at INTEGER NOT NULL
 );
+
+-- The catalogue (ADR-006, schema version 2). Only fields the desktop owns:
+-- favourite, tags, lastPlayedAt and the correction hashes are absent rather
+-- than nullable, because a column the desktop can write is a column a sync
+-- can overwrite.
+CREATE TABLE songs (
+  id TEXT PRIMARY KEY,                 -- ULID, generated wherever the song originated
+  title TEXT NOT NULL, artist TEXT NOT NULL, album TEXT,
+  source_id TEXT NOT NULL,             -- 'purchased' | 'gprotab' | 'guitarprotabs' | 'file' | ...
+  source_external_id TEXT, source_url TEXT,
+  tab_blob_hash TEXT NOT NULL,         -- resolvable via GET /blob/{hash}
+  tab_format TEXT NOT NULL,            -- gp3|gp4|gp5|gpx|gp|musicxml
+  default_track_index INTEGER,         -- seeded once, then phone-owned
+  target_tempo_bpm INTEGER,
+  archived INTEGER NOT NULL DEFAULT 0, -- delete archives; it never drops the row
+  added_at INTEGER NOT NULL,           -- set once, preserved across updates
+  updated_at INTEGER NOT NULL          -- drives sync
+);
 ```
 
 The desktop HTTP API (LAN / Tailscale) serves:
@@ -177,13 +196,21 @@ The desktop HTTP API (LAN / Tailscale) serves:
 `POST /events/backup` (append-only practice-event mirror), `GET /events/since/{id}`.
 No auth beyond being on the LAN/tailnet in v1; it binds to the tailnet/LAN interface only.
 
-**Pending change — desktop `songs` table and catalogue sync.**
-[ADR-006](adr/ADR-006-library-ownership-and-sync.md) adds a `songs` table to the desktop
-schema, a `'purchased'` member to `Song.source.sourceId`, and four endpoints
-(`GET /library`, `POST /blob`, `POST /songs`, `DELETE /songs/{id}`), deprecating
-`GET /manifest` in place rather than changing its shape. The schema and field-ownership
-rules are specified in that ADR; this document is updated to match when the code lands, so
-that until then it continues to describe what the desktop actually stores.
+Added by [ADR-006](adr/ADR-006-library-ownership-and-sync.md) (built):
+`GET /library` (the catalogue, each song with its bundles), `POST /blob` (upload; the
+server computes the hash and never takes it from the client), `POST /songs` (upsert one
+catalogue row, idempotent on id), `DELETE /songs/{songId}` (archive, never a row delete).
+
+`GET /manifest` is unchanged and deprecated. It reports one entry per confirmed/auto match,
+so a song appears in it only once a recording has been matched — which is why it could not
+describe a library and why `/library` was added beside it rather than replacing it. Phones
+run service-worker-cached builds (ADR-003), and a stale build parsing a changed `/manifest`
+is a broken library screen with no error message.
+
+The write endpoints change this service's risk profile: it was read-mostly, and it now
+accepts uploads that add playable songs. The trust boundary is unchanged (tailnet-only, no
+token) and stays defensible for a single-user service, but authentication becomes mandatory
+before this is ever bound to a public interface.
 
 ## Why not SQLite/WASM on the phone
 
