@@ -1,0 +1,341 @@
+/* Palette lifted from the PWA (app/src/shell/AppShell.css) so the manager
+   reads as the same product: cool dark chassis, amber for the live/primary
+   action, teal for state that is settled. */
+
+:root {
+  --color-bg: #101114;
+  --color-surface: #17181c;
+  --color-surface-raised: #1d1f24;
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-strong: rgba(255, 255, 255, 0.13);
+  --color-accent: #f0a93b;
+  --color-accent-muted: rgba(240, 169, 59, 0.14);
+  --color-accent-line: rgba(240, 169, 59, 0.35);
+  --color-progress: #4fb3a5;
+  --color-text: #f2f0ec;
+  --color-text-muted: #9a9aa2;
+  --color-text-faint: #64646c;
+  --color-danger: #e0655a;
+  --radius-sm: 8px;
+  --radius: 11px;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 20px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* --- top bar --- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.topbar__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-text-faint);
+}
+
+.dot.is-ok {
+  background: var(--color-progress);
+}
+
+.dot.is-bad {
+  background: var(--color-danger);
+}
+
+/* --- drop zone --- */
+
+.dropzone {
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius);
+  padding: 34px 20px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--color-surface);
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.dropzone:hover,
+.dropzone:focus-visible {
+  border-color: var(--color-accent-line);
+  outline: none;
+}
+
+.dropzone.is-over {
+  border-color: var(--color-accent);
+  background: var(--color-accent-muted);
+}
+
+.dropzone.is-busy {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.dropzone__title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.dropzone__hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* --- panels --- */
+
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.panel__title {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.panel__sub {
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: var(--color-text-faint);
+  word-break: break-all;
+}
+
+.count {
+  color: var(--color-text-faint);
+  font-weight: 400;
+}
+
+/* --- form --- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+  flex: 1;
+}
+
+.field-row {
+  display: flex;
+  gap: 12px;
+}
+
+.field--narrow {
+  max-width: 140px;
+}
+
+label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.optional {
+  color: var(--color-text-faint);
+}
+
+input[type='text'],
+input[type='number'],
+select {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 14px;
+  width: 100%;
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--color-accent-line);
+}
+
+input.is-invalid {
+  border-color: var(--color-danger);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  border-color: var(--color-accent-line);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn--primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #1a1206;
+  font-weight: 600;
+}
+
+.btn--danger:hover {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+/* --- messages --- */
+
+.message,
+.warning {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.message {
+  background: var(--color-accent-muted);
+  border: 1px solid var(--color-accent-line);
+}
+
+.message.is-error {
+  background: rgba(224, 101, 90, 0.12);
+  border-color: rgba(224, 101, 90, 0.4);
+}
+
+.warning {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-muted);
+}
+
+/* --- song list --- */
+
+.songs {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.song {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 2px;
+  border-top: 1px solid var(--color-border);
+}
+
+.song:first-child {
+  border-top: none;
+}
+
+.song__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.song__title {
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.song__sub {
+  font-size: 12px;
+  color: var(--color-text-faint);
+}
+
+.song.is-archived .song__title,
+.song.is-archived .song__sub {
+  color: var(--color-text-faint);
+  text-decoration: line-through;
+}
+
+.tag {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.tag--audio {
+  border-color: rgba(79, 179, 165, 0.4);
+  color: var(--color-progress);
+}
+
+.empty {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--color-text-faint);
+}

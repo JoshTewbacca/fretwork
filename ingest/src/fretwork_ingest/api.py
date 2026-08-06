@@ -46,11 +46,13 @@ from typing import Any, Iterator, Literal, Optional, Sequence
 from fastapi import Body, Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import db
 from .blobstore import BlobStore
 from .config import Config
+from .manager_assets import static_dir
 
 from . import __version__
 
@@ -191,6 +193,18 @@ def create_app(cfg: Config, allowed_origins: Sequence[str] | None = None) -> Fas
             yield conn
         finally:
             conn.close()
+
+    # The manager window (docs/04-library-manager.md). Serving it from the
+    # service that already holds the database open means no second runtime and
+    # no second process to keep alive; the pywebview shell in manager_window.py
+    # is a frame around this page, not a separate application.
+    assets = static_dir()
+    if assets.is_dir():
+        app.mount("/static", StaticFiles(directory=str(assets)), name="static")
+
+        @app.get("/")
+        def manager_page() -> FileResponse:
+            return FileResponse(assets / "manager.html")
 
     @app.get("/health")
     def health() -> dict[str, str]:

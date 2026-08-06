@@ -80,7 +80,46 @@ There is no authentication in v1 (see the comment at the top of
 bind only to your LAN and Tailscale tailnet interfaces, never the public
 internet.
 
-## 6. Status report
+## 6. The library manager window
+
+Where bought tab files go in. Drop a `.gp`/`.gpx`/`.gp5`/`.gp4`/`.gp3` or
+MusicXML file on it, confirm what was read out of the file, and it becomes a
+catalogue row the phone syncs (see `docs/04-library-manager.md` and
+`docs/adr/ADR-006-library-ownership-and-sync.md`).
+
+```powershell
+A:\Songsterr\ingest\.venv\Scripts\python.exe -m fretwork_ingest.cli manager
+```
+
+This starts the API on a background thread and opens a window on it, so there
+is one process to start and one to stop. It binds to `127.0.0.1` regardless of
+`config.local.json` — a window on this machine has no reason to be reachable
+from the network. Use `serve` when the phone needs to reach it.
+
+The same page is served at `http://<host>:<port>/` by `serve`, so it also
+works from a browser, including from the phone over the tailnet.
+
+**Files are parsed by alphaTab, not by Python.** That gives one parser for the
+whole project and means anything the drop zone accepts is by construction
+something the player can open — a corrupt file is refused at the desk rather
+than on the phone later. alphaTab's browser bundle is 1.1 MB of third-party
+build output, so it is copied out of `app/node_modules` into the gitignored
+`ingest/static/vendor/` on startup instead of being committed. If `app/`'s
+dependencies are not installed, run:
+
+```powershell
+cd A:\Songsterr\app; npm install
+```
+
+Without it the manager still works, but you type the title, artist and tempo
+in yourself instead of having them filled from the file. The window says so
+when that is the case.
+
+`pywebview` provides the window and is in `requirements.txt`. If it is not
+installed the command explains how to install it and suggests `serve` plus a
+browser as the alternative, rather than failing.
+
+## 7. Status report
 
 ```powershell
 A:\Songsterr\ingest\.venv\Scripts\python.exe -m fretwork_ingest.cli report
@@ -89,13 +128,13 @@ A:\Songsterr\ingest\.venv\Scripts\python.exe -m fretwork_ingest.cli report
 Prints counts from the current database: source_audio rows (and how many
 are DRM-protected), matches by status, jobs, bundles.
 
-## 7. Running the tests
+## 8. Running the tests
 
 ```powershell
 A:\Songsterr\ingest\.venv\Scripts\python.exe -m pytest tests -q
 ```
 
-## 8. Tailscale (away-from-home access)
+## 9. Tailscale (away-from-home access)
 
 Milestone 1 also covers getting the phone to reach this service when you're
 not on the home LAN. This part is interactive and has to be done by you

@@ -5,6 +5,7 @@ Usage (from the ingest/ directory, using the venv interpreter directly):
     .venv\\Scripts\\python.exe -m fretwork_ingest.cli init-db
     .venv\\Scripts\\python.exe -m fretwork_ingest.cli scan --root "D:\\Music"
     .venv\\Scripts\\python.exe -m fretwork_ingest.cli serve --host 0.0.0.0 --port 8765
+    .venv\\Scripts\\python.exe -m fretwork_ingest.cli manager
     .venv\\Scripts\\python.exe -m fretwork_ingest.cli report
     .venv\\Scripts\\python.exe -m fretwork_ingest.cli bundle --song-id <id> \\
         --fingerprint <sha>
@@ -22,6 +23,8 @@ from .audio import AudioToolError
 from .blobstore import BlobStore
 from .bundle import build_full_mix_bundle
 from .config import Config
+from .manager_assets import ensure_alphatab
+from .manager_window import run_manager_window
 from .scan import scan_media
 
 
@@ -78,10 +81,19 @@ def _cmd_serve(args: argparse.Namespace) -> int:
     if args.port:
         cfg.port = args.port
 
+    print(ensure_alphatab().message)
     app = create_app(cfg)
     print(f"serving on {cfg.host}:{cfg.port} (no auth -- LAN/tailnet only, see api.py)")
+    print(f"manager UI at http://{cfg.host}:{cfg.port}/")
     uvicorn.run(app, host=cfg.host, port=cfg.port)
     return 0
+
+
+def _cmd_manager(args: argparse.Namespace) -> int:
+    cfg = Config.load()
+    if args.port:
+        cfg.port = args.port
+    return run_manager_window(cfg)
 
 
 def _cmd_report(args: argparse.Namespace) -> int:
@@ -175,6 +187,12 @@ def build_parser() -> argparse.ArgumentParser:
     serve_parser.add_argument("--host", type=str, default=None)
     serve_parser.add_argument("--port", type=int, default=None)
     serve_parser.set_defaults(func=_cmd_serve)
+
+    manager_parser = subparsers.add_parser(
+        "manager", help="open the library manager window (drop tab files in)"
+    )
+    manager_parser.add_argument("--port", type=int, default=None)
+    manager_parser.set_defaults(func=_cmd_manager)
 
     report_parser = subparsers.add_parser("report", help="print a summary of the ingest database")
     report_parser.set_defaults(func=_cmd_report)

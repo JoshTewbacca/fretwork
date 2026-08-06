@@ -22,6 +22,11 @@ ingest/blobs/
 ingest/data/
 ingest/media/
 
+# Third-party browser bundle the manager window copies out of the PWA's
+# node_modules at startup (see manager_assets.py). A 1.1 MB build artifact
+# belongs in neither this repo nor its history.
+ingest/static/vendor/
+
 # Python tooling noise
 .pytest_cache/
 *.egg-info/

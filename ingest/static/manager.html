@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fretwork Library Manager</title>
+    <link rel="stylesheet" href="/static/manager.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>Library</h1>
+      <div class="topbar__right">
+        <span id="status-dot" class="dot" aria-hidden="true"></span>
+        <span id="status-text" class="status">checking</span>
+      </div>
+    </header>
+
+    <main>
+      <section
+        id="dropzone"
+        class="dropzone"
+        tabindex="0"
+        role="button"
+        aria-label="Add a tab file"
+      >
+        <p class="dropzone__title">Drop a tab file here</p>
+        <p class="dropzone__hint">
+          Guitar Pro (.gp, .gpx, .gp5, .gp4, .gp3) or MusicXML. Click to browse.
+        </p>
+        <input
+          id="file-input"
+          type="file"
+          accept=".gp,.gpx,.gp5,.gp4,.gp3,.xml,.musicxml,.mxl"
+          hidden
+        />
+      </section>
+
+      <p id="parser-warning" class="warning" hidden></p>
+      <p id="message" class="message" hidden></p>
+
+      <!-- Confirm form. Extracted metadata is frequently wrong or blank, so
+           nothing is written until it has been seen and accepted. -->
+      <section id="confirm" class="panel" hidden>
+        <h2 class="panel__title">Confirm details</h2>
+        <p id="confirm-file" class="panel__sub"></p>
+
+        <div class="field">
+          <label for="f-title">Title</label>
+          <input id="f-title" type="text" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="f-artist">Artist</label>
+          <input id="f-artist" type="text" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="f-album">Album <span class="optional">optional</span></label>
+          <input id="f-album" type="text" autocomplete="off" />
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="f-track">Track you play</label>
+            <select id="f-track"></select>
+          </div>
+          <div class="field field--narrow">
+            <label for="f-tempo">Tempo (BPM)</label>
+            <input id="f-tempo" type="number" min="20" max="400" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="save" type="button" class="btn btn--primary">Add to library</button>
+          <button id="cancel" type="button" class="btn">Cancel</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel__title">
+          In the library <span id="count" class="count"></span>
+        </h2>
+        <ul id="songs" class="songs"></ul>
+        <p id="empty" class="empty" hidden>Nothing yet. Drop a tab file above.</p>
+      </section>
+    </main>
+
+    <script src="/static/vendor/alphaTab.min.js" onerror="window.__alphaTabMissing = true"></script>
+    <script src="/static/manager.js"></script>
+  </body>
+</html>
