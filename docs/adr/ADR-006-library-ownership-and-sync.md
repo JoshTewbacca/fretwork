@@ -1,7 +1,15 @@
 # ADR-006: Library ownership and desktop sync
 
-Status: proposed 2026-08-02. Raised when purchased tab files (mySongBook) needed a route
-into the library, which the current architecture has no path for.
+Status: **accepted and implemented 2026-08-06**. Raised when tab files bought as files
+needed a route into the library, which the architecture had no path for.
+
+**Note on the trigger, added 2026-08-06.** The prompt for this ADR was mySongBook, which
+turned out not to sell files at all — it is subscription-only and its scores cannot be
+exported (evidence in [04-library-manager.md](../04-library-manager.md)). The decision below
+is unaffected and was implemented as written. Two reasons it still stands: the manager never
+cared where a file came from, so file import from any source is served identically; and the
+stronger argument was always the third one in the context below, which has nothing to do
+with buying anything.
 
 ## Context
 
@@ -14,10 +22,9 @@ else.
 Three things follow from that, and the third is the one that forces this decision.
 
 **1. A tab file on the desktop cannot reach the phone.** Tabs enter the library through the
-PWA only: the Edge-function search added in ADR-005, or the local file picker. A `.gp` bought
-from mySongBook and sitting in a folder on the desktop has no route in at all. The phone
-would have to be the thing that imports it, which defeats the point of buying it on a
-desktop.
+PWA only: the Edge-function search added in ADR-005, or the local file picker. A `.gp`
+sitting in a folder on the desktop has no route in at all. The phone would have to be the
+thing that imports it, which defeats the point of working at a desk.
 
 **2. `/manifest` describes audio, not a library.** It is built from `matches` rows, so a song
 appears in it only once a recording has been matched to that song id. The milestone plan is
@@ -33,7 +40,9 @@ no `targetTempoBpm`. A rebuild from this produces song ids with audio attached a
 render or play any of them.
 
 That is not a gap in the new feature. It is an existing promise the system cannot keep, and
-the fix for it and the fix for purchased tabs are the same fix.
+the fix for it and the fix for desktop-side files are the same fix. This is the reason that
+survived the trigger turning out to be wrong, and in hindsight it was always the stronger of
+the two.
 
 ## Decision
 

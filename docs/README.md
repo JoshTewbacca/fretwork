@@ -17,6 +17,7 @@ Produced per FABLE_PROMPT.md §10. Status: approved by the owner on 2026-07-27; 
 
 Raised after the original review, during implementation.
 
-- [04-library-manager.md](04-library-manager.md) — desktop app for purchased tabs and audio
+- [04-library-manager.md](04-library-manager.md) — desktop app for tab files and audio;
+  slice 1 built. Also records why no paid source of importable Guitar Pro files exists.
 - [ADR-006 library ownership and desktop sync](adr/ADR-006-library-ownership-and-sync.md) —
-  which side owns which field, and why ADR-003's disaster-recovery path cannot currently run
+  which side owns which field, and why ADR-003's disaster-recovery path could not run
