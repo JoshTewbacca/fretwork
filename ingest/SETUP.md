@@ -134,42 +134,57 @@ are DRM-protected), matches by status, jobs, bundles.
 A:\Songsterr\ingest\.venv\Scripts\python.exe -m pytest tests -q
 ```
 
-## 9. Tailscale (away-from-home access)
+## 9. Tailscale (required -- see ADR-003)
 
-Milestone 1 also covers getting the phone to reach this service when you're
-not on the home LAN. This part is interactive and has to be done by you
-(Josh) directly -- signing into a Tailscale account isn't something an
-agent can do on your behalf.
+**Corrected 2026-08-09.** This section originally described a plain
+`http://100.x.y.z:8765` tailnet address as sufficient. It is not: the PWA is
+served over HTTPS from Vercel, and browsers block a HTTPS page from calling
+a plain `http://` address (mixed content). A raw Tailscale IP or MagicDNS
+name over `http://` will look reachable in a browser typed directly at it
+but will silently fail when the PWA calls it. **Tailscale Serve** is what
+actually works, because it terminates TLS with a real certificate for the
+machine's `*.ts.net` name. See
+`docs/adr/ADR-003-offline-state-machine.md`'s 2026-07-27 revision, which
+also notes this makes Tailscale a prerequisite for every desktop feature
+(audio bundles, ingest review), not the optional convenience the milestone
+plan originally described it as -- tabs, search, playback and practice
+continue to work without it.
+
+Steps 1-2 are interactive and have to be done by you (Josh) directly --
+signing into an account and installing an App Store app aren't things an
+agent can do on your behalf. Steps 3-6 are ordinary commands once you've
+signed in, and can be run for you.
 
 1. **Install Tailscale on the Windows desktop.** Download from
-   https://tailscale.com/download/windows, install, and sign in
-   (`tailscale up` from an elevated PowerShell, or via the tray app). Use
-   whichever identity provider you want as the tailnet owner (Google,
-   Microsoft, GitHub, or a Tailscale account) -- just make sure it's the
-   same account you use on the phone in the next step.
+   https://tailscale.com/download/windows, install, and sign in via the
+   tray app. Use whichever identity provider you want as the tailnet owner
+   (Google, Microsoft, GitHub, or a Tailscale account) -- just make sure
+   it's the same account you use on the phone in the next step.
 2. **Install Tailscale on the iPhone.** Get it from the App Store, open it,
    and sign in with the **same account** used on the desktop so both
    devices land in the same tailnet.
-3. **Find the desktop's tailnet address.** After both devices are signed
-   in, run:
-   ```powershell
-   tailscale status
-   ```
-   or open the Tailscale admin console (https://login.tailscale.com/admin/machines)
-   and note the desktop machine's tailnet IP (`100.x.y.z`) or its MagicDNS
-   name (e.g. `desktop-name.tailnet-name.ts.net`). Either works as a host to
-   reach `serve`'s port on.
-4. **Bind the API to both interfaces.** `serve --host 0.0.0.0` (the
-   default in `config.local.json` shown above) listens on every local
-   interface, which covers the LAN address and the Tailscale interface at
-   once -- no separate bind needed per network.
-5. **Record both URLs in the PWA settings screen** (per
+3. **Enable HTTPS certificates for the tailnet**, if not already on: the
+   Tailscale admin console (https://login.tailscale.com/admin/dns) has a
+   toggle for this under DNS settings. Serve cannot issue a certificate
+   until it is on. One-time, per tailnet, not per machine.
+4. **Bind the API to the LAN.** `serve --host 0.0.0.0` (the default in
+   `config.local.json` shown above) still matters for the home-Wi-Fi path;
+   Tailscale Serve proxies to `localhost`, which needs the API listening
+   somewhere Serve can reach regardless.
+5. **Run `tailscale serve --bg 8765`** (from an elevated PowerShell, once
+   signed in) to publish the running API at
+   `https://<machine>.<tailnet>.ts.net` over HTTPS, proxied to local port
+   8765. `tailscale serve status` shows the resulting URL. `--bg` keeps it
+   running after the terminal closes; without it, Serve stops when the
+   shell does.
+6. **Record both URLs in the PWA settings screen** (per
    `docs/00-milestone-plan.md` M1 and `docs/adr/ADR-003-offline-state-machine.md`):
-   - LAN URL, e.g. `http://192.168.1.50:8765` -- used when the phone is on
-     the home Wi-Fi (probed first, per ADR-003).
-   - Tailscale URL, e.g. `http://100.x.y.z:8765` or
-     `http://desktop-name.tailnet-name.ts.net:8765` -- used when away from
-     home.
+   - Tailscale URL -- the `https://...ts.net` address from step 5. Probed
+     first, and the only one guaranteed to work from the HTTPS-served PWA.
+   - LAN URL, e.g. `http://192.168.1.50:8765` -- kept for the case where
+     you terminate TLS locally yourself; the settings screen should warn
+     when a plain `http://` URL is entered here, since it will silently
+     fail from the PWA otherwise.
 
 Windows Firewall may prompt to allow the Python process on private
 networks the first time `serve` runs; allow it for Private networks (avoid
