@@ -128,7 +128,6 @@ export function PlayerScreen() {
       localBundleRef.current?.release()
       localBundleRef.current = local
       store.setAudioSources(local?.sources ?? null, local?.syncMap ?? null)
-      bundleVersion.value++
     })()
     return () => {
       cancelled = true
