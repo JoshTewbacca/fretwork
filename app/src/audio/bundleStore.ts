@@ -92,7 +92,10 @@ export async function downloadBundle(songId: string): Promise<AudioBundle | null
     const manifest = await fetchManifest(baseUrl)
     const song = manifest.songs.find((entry) => entry.song_id === songId)
     const candidate = song?.bundles.find((b) => b.backing_hash !== null)
-    if (!song || !candidate || !candidate.backing_hash) return null
+    if (!song || !candidate || !candidate.backing_hash) {
+      state.value = { status: 'idle' }
+      return null
+    }
     if (!candidate.sync_map) {
       throw new Error('That bundle has no sync information yet, so it cannot be lined up.')
     }

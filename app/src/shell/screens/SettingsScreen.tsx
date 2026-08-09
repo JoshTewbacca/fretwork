@@ -7,7 +7,12 @@ import { MAX_ZOOM_PCT, MIN_ZOOM_PCT } from '../../player/core/zoom.ts'
 import { loadPrefs, prefs, prefsLoaded, setPrefs } from '../../settings/prefs.ts'
 import { getDb } from '../../db/open.ts'
 import { getDesktopConfig, setDesktopConfig, candidateUrls } from '../../desktop/config.ts'
-import { checkHealth, isMixedContentBlocked, resolveDesktop } from '../../desktop/client.ts'
+import {
+  activeDesktopUrl,
+  checkHealth,
+  isMixedContentBlocked,
+  resolveDesktop,
+} from '../../desktop/client.ts'
 import { probe } from '../../desktop/status.ts'
 import { syncLibrary } from '../../library/sync.ts'
 import { refresh as refreshLibrary } from '../../library/libraryStore.ts'
@@ -76,6 +81,11 @@ function DesktopConnectionSection() {
         setTestMessage(
           `Connected to ${url}${result.version ? ` (ingest service ${result.version})` : ''}.`,
         )
+        // Test connection is otherwise cosmetic: everything that actually talks to
+        // the desktop (audio downloads, review queue) reads activeDesktopUrl, which
+        // only resolveDesktop() sets. Without this, a successful test still leaves
+        // downloads reporting "the desktop is not connected".
+        activeDesktopUrl.value = url
         return
       }
     }
