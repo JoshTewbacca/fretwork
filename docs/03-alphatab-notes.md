@@ -68,6 +68,32 @@ step back — play/pause/volume are ours; `tickPosition` / `timePosition` and cu
 remain functional. Speed control in this mode = `audio.playbackRate` on our elements (which
 iOS Safari supports, with pitch preservation on by default) — *not* lossless like synth mode.
 
+### Changing `playerMode` at runtime leaves the new player with no MIDI
+
+Verified against the shipped 1.8.4 bundle (2026-08-11), and the cause of "the recording will not
+play, the synth will".
+
+`api.updateSettings()` calls `AlphaTabApiBase._setupOrDestroyPlayer()`, which — when the mode has
+changed — destroys the player and constructs a new one. It **does not** regenerate the MIDI, and
+`updateSettings` does not either: `loadMidiForScore()` is only called from `_onScoreLoaded`. The
+new player therefore has `_isMidiLoaded === false`, and `AlphaSynthBase.play()` starts with
+
+```js
+play() { if (this.state !== PlayerState.Paused || !this._isMidiLoaded) return false; ... }
+```
+
+so `playPause()` returns without touching the output. Nothing throws, no event fires, the
+transport state never changes: the play button is simply inert, on every platform.
+
+(The internal signature is misleading here — `_setupOrDestroyPlayer()` is documented as returning
+"true if a new player was created" but returns `false` on every path, including the one that
+creates a player.)
+
+**So: after changing `settings.player.playerMode`, call `api.loadMidiForScore()`.** The rebuild
+also drops the playback range, the position and the track mixer; the player wrapper carries only
+master volume, metronome/count-in volume, playback speed, `isLooping` and the events filter onto
+the new instance. `PlayerStore.rearmPlayer()` restores the rest.
+
 ## Playback / player API surface (Milestone 0)
 
 Events on `AlphaTabApi`:

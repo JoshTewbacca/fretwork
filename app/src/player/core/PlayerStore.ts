@@ -403,6 +403,27 @@ export function createPlayerStore(
   )
   const availableAudioModes = computed(() => availableModes(audioSources.value))
 
+  // True while `error` is showing something the audio elements reported, so a
+  // later mode change can clear it without wiping a score error.
+  let audioProblemShown = false
+
+  /**
+   * Surface a failure from the audio elements. Without this a recording the
+   * device cannot decode is indistinguishable from one that is simply not
+   * playing: alphaTab reports itself as playing, the elements never produce a
+   * position, and the cursor sits still with nothing on screen to say why.
+   */
+  function reportAudioProblem(message: string) {
+    audioProblemShown = true
+    error.value = message
+  }
+
+  function clearAudioProblem() {
+    if (!audioProblemShown) return
+    audioProblemShown = false
+    error.value = null
+  }
+
   /**
    * Push the score's sync points into the player. Only meaningful in external
    * media mode: in synth mode the points would warp alphaTab's own tempo to
@@ -417,16 +438,69 @@ export function createPlayerStore(
     api.updateSyncPoints()
   }
 
+  /**
+   * Re-arm the player alphaTab has just rebuilt.
+   *
+   * Changing playerMode destroys the current player and constructs a new one,
+   * and the new one starts with no MIDI: alphaTab only generates it when a
+   * score loads, and updateSettings does not regenerate it. A player with no
+   * MIDI refuses to start at all - AlphaSynth.play() returns early on it - so
+   * the transport button does nothing whatsoever and the song looks wedged.
+   * Nothing else reloads it, so this has to.
+   *
+   * The rebuild also drops the loop range, the position and the mixer;
+   * alphaTab carries only master volume, speed and the looping flag across.
+   */
+  function rearmPlayer() {
+    const score = api.score
+    if (!score) return
+    const tick = currentTick.value
+    const region = loop.value
+
+    api.loadMidiForScore()
+
+    // The mixer acts on the MIDI channels loadMidiForScore has just
+    // regenerated, so it has to be replayed onto them.
+    for (const view of tracks.value) {
+      const track = score.tracks[view.index]
+      if (!track) continue
+      if (view.mute) api.changeTrackMute([track], true)
+      if (view.solo) api.changeTrackSolo([track], true)
+      if (view.volume !== 1) api.changeTrackVolume([track], view.volume)
+      if (view.transpositionPitch !== 0) {
+        api.changeTrackTranspositionPitch([track], view.transpositionPitch)
+      }
+    }
+
+    // Speed before position: alphaTab rescales the position when the speed
+    // changes, so setting it after would move the playhead we just restored.
+    api.playbackSpeed = speedPct.value / 100
+    const ticks = region ? barRangeToTicks(region) : null
+    if (ticks) {
+      api.isLooping = true
+      api.playbackRange = ticks as alphaTab.synth.PlaybackRange
+    } else {
+      api.isLooping = false
+      api.playbackRange = null
+    }
+    api.tickPosition = tick
+  }
+
   /** Hand alphaTab our audio, replacing the synth. */
   function attachExternalMedia(mode: Exclude<AudioMode, 'synth'>) {
     const sources = audioSources.value
     if (!sources) return
 
     externalMedia?.destroy()
-    externalMedia = createExternalMedia(sources, mode, (ms) => {
-      const output = api.player?.output as alphaTab.synth.IExternalMediaSynthOutput | undefined
-      output?.updatePosition(ms)
-    })
+    externalMedia = createExternalMedia(
+      sources,
+      mode,
+      (ms) => {
+        const output = api.player?.output as alphaTab.synth.IExternalMediaSynthOutput | undefined
+        output?.updatePosition(ms)
+      },
+      reportAudioProblem,
+    )
 
     // Changing playerMode makes alphaTab destroy the current player and build a
     // new one, so the handler can only be attached after updateSettings.
@@ -434,6 +508,7 @@ export function createPlayerStore(
     api.updateSettings()
     const output = api.player?.output as alphaTab.synth.IExternalMediaSynthOutput | undefined
     if (output) output.handler = externalMedia.handler
+    rearmPlayer()
   }
 
   /** Give playback back to the synthesiser. */
@@ -445,6 +520,7 @@ export function createPlayerStore(
     // The rebuilt synth starts with no soundfont, so it has to be loaded again
     // or the player is silent with no error.
     void api.loadSoundFontFromUrl(options.soundFontUrl, false)
+    rearmPlayer()
   }
 
   const currentSection = computed(
@@ -483,6 +559,7 @@ export function createPlayerStore(
   void api.loadSoundFontFromUrl(options.soundFontUrl, false)
 
   api.error.on((e) => {
+    audioProblemShown = false
     error.value = String(e.message ?? e)
   })
 
@@ -627,6 +704,7 @@ export function createPlayerStore(
     api,
 
     loadScore(data) {
+      audioProblemShown = false
       error.value = null
       scoreLoaded.value = false
       // Drop the previous song's recording before loading the next one, so a
@@ -777,6 +855,7 @@ export function createPlayerStore(
 
       const wasExternal = audioMode.value !== 'synth'
       audioMode.value = mode
+      clearAudioProblem()
 
       if (mode === 'synth') {
         attachSynth()

@@ -65,15 +65,39 @@ export interface ExternalMediaController {
  *
  * `onPosition` receives the audio position in milliseconds and is expected to
  * forward it to alphaTab's output; the store wires that up, because only it
- * holds the api reference.
+ * holds the api reference. `onProblem` receives anything the elements refuse to
+ * do, which the store turns into a message: a failure here is otherwise
+ * invisible, since alphaTab believes it is playing either way.
  */
 export function createExternalMedia(
   sources: AudioSources,
   initialMode: Exclude<AudioMode, 'synth'>,
   onPosition: (ms: number) => void,
+  onProblem: (message: string) => void = () => {},
 ): ExternalMediaController {
   const backing = createElement(sources.backingUrl)
   const guitar = sources.guitarUrl ? createElement(sources.guitarUrl) : null
+
+  for (const element of [backing, guitar]) {
+    if (!element) continue
+    element.addEventListener('error', () => onProblem(describeMediaError(element)))
+  }
+
+  /**
+   * Start one element, reporting a refusal rather than dropping it. The call
+   * itself is synchronous, so this stays inside the user gesture that iOS
+   * requires; only the outcome is awaited.
+   */
+  function start(element: HTMLAudioElement) {
+    element.play().catch((err: unknown) => {
+      const name = err instanceof Error ? err.name : ''
+      onProblem(
+        name === 'NotAllowedError'
+          ? 'This device would not start the recording without a tap. Press play again.'
+          : `The recording would not start: ${err instanceof Error ? err.message : String(err)}`,
+      )
+    })
+  }
 
   let mode = initialMode
   let masterVolume = 1
@@ -147,8 +171,8 @@ export function createExternalMedia(
     play() {
       // Both elements are started in the same task so they begin together;
       // whatever drift survives that is what the pump corrects.
-      void backing.play()
-      if (guitar) void guitar.play()
+      start(backing)
+      if (guitar) start(guitar)
       startPump()
     },
     pause() {
@@ -174,6 +198,22 @@ export function createExternalMedia(
       }
     },
   }
+}
+
+/**
+ * What the element could not do, in words worth showing. MEDIA_ERR_SRC_NOT
+ * SUPPORTED is the one to expect on a phone: the file decoded on the desktop
+ * that built it, and this browser will not take it.
+ */
+function describeMediaError(element: HTMLAudioElement): string {
+  const code = element.error?.code
+  if (code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+    return 'This device cannot play the downloaded recording. Rebuild the bundle as AAC on the desktop, or use Synth.'
+  }
+  if (code === MediaError.MEDIA_ERR_DECODE) {
+    return 'The downloaded recording is damaged. Download it from the desktop again.'
+  }
+  return `The recording could not be loaded${element.error?.message ? `: ${element.error.message}` : '.'}`
 }
 
 function createElement(url: string): HTMLAudioElement {

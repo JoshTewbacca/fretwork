@@ -13,6 +13,7 @@ import { getBlob, hasBlob, putBlob } from '../db/blobs'
 import { activeDesktopUrl, fetchBlob, fetchManifest } from '../desktop/client'
 import { readStorageBudget } from '../offline/storageBudget'
 import type { AudioSources } from '../player/core/externalMedia'
+import { asPlayableAudio } from './mediaType'
 
 export type DownloadState =
   | { status: 'idle' }
@@ -50,8 +51,11 @@ export async function loadLocalBundle(songId: string): Promise<LocalBundle | nul
     ? await getBlob(db, bundle.guitarBlobHash)
     : undefined
 
-  const backingUrl = URL.createObjectURL(backing.bytes)
-  const guitarUrl = guitar ? URL.createObjectURL(guitar.bytes) : undefined
+  // Typed on the way out, not on the way in: the desktop serves everything as
+  // application/octet-stream and Safari will not play a blob URL it cannot name
+  // a media type for. See mediaType.ts.
+  const backingUrl = URL.createObjectURL(await asPlayableAudio(backing.bytes))
+  const guitarUrl = guitar ? URL.createObjectURL(await asPlayableAudio(guitar.bytes)) : undefined
 
   return {
     bundle,
